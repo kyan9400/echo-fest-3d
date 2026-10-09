@@ -1,0 +1,192 @@
+@import "tailwindcss";
+
+@theme {
+  --color-night: #0b0614;
+  --color-dusk: #150c24;
+  --color-plum: #241338;
+  --color-ink: #f5f0ff;
+  --color-haze: #b9a8d9;
+  --color-acid: #c8ff3d;
+  --color-coral: #ff5c86;
+  --color-cyan: #45e6ff;
+
+  --font-display: var(--font-unbounded), "Arial Black", sans-serif;
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+
+  --text-mega: clamp(3rem, 15vw, 10.5rem);
+  --text-mega--line-height: 0.86;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  html {
+    background: var(--color-night);
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* smooth anchor jumps only when the OS allows motion (this applies before JS runs, too) */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  html.reduce-motion {
+    scroll-behavior: auto;
+  }
+
+  body {
+    background: var(--color-night);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    overflow-x: hidden;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--color-acid);
+    color: var(--color-night);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-cyan);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  section[id] {
+    scroll-margin-top: 5rem;
+  }
+}
+
+@layer components {
+  .btn {
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    border-radius: 999px;
+    padding: 0.75rem 1.4rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.1;
+    transition:
+      transform 0.25s var(--ease-out-expo),
+      background-color 0.2s,
+      color 0.2s;
+    touch-action: manipulation;
+  }
+  .btn:active {
+    transform: scale(0.97);
+  }
+  .btn-acid {
+    background: var(--color-acid);
+    color: var(--color-night);
+  }
+  .btn-acid:hover {
+    background: #dcff85;
+  }
+  .btn-line {
+    background: var(--color-night);
+    color: var(--color-ink);
+    box-shadow: inset 0 0 0 2px var(--color-plum);
+  }
+  .btn-line:hover {
+    box-shadow: inset 0 0 0 2px var(--color-haze);
+  }
+  .btn-line[aria-pressed="true"] {
+    box-shadow: inset 0 0 0 2px var(--color-coral);
+    color: #fff;
+  }
+
+  .eyebrow {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .link-under {
+    background-image: linear-gradient(var(--color-acid), var(--color-acid));
+    background-size: 0% 3px;
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    transition: background-size 0.3s var(--ease-out-expo);
+  }
+  .link-under:hover,
+  .link-under:focus-visible {
+    background-size: 100% 3px;
+  }
+
+  /* Ticket stub: notched sides */
+  .stub {
+    background:
+      radial-gradient(circle at 0 62%, transparent 14px, var(--color-dusk) 15px) left / 51% 100% no-repeat,
+      radial-gradient(circle at 100% 62%, transparent 14px, var(--color-dusk) 15px) right / 51% 100% no-repeat;
+  }
+
+  /* equaliser bars next to "now playing" */
+  .eq span {
+    display: inline-block;
+    width: 3px;
+    height: 12px;
+    margin-right: 2px;
+    background: var(--color-acid);
+    transform-origin: bottom;
+    animation: eq 0.9s ease-in-out infinite;
+  }
+  .eq span:nth-child(2) {
+    animation-delay: -0.3s;
+  }
+  .eq span:nth-child(3) {
+    animation-delay: -0.6s;
+  }
+  html.reduce-motion .eq span {
+    animation: none;
+  }
+}
+
+@keyframes eq {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* Scroll reveals: only once JS is ready, never with reduced motion */
+.reveal-ready [data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.8s var(--ease-out-expo),
+    transform 0.8s var(--ease-out-expo);
+}
+.reveal-ready [data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+}
+html.reduce-motion [data-reveal] {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+html.reduce-motion .btn {
+  transition: none;
+}
