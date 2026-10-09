@@ -6,7 +6,7 @@ on **Use my microphone** and the tunnel reacts to the room you're in.
 
 Concept project — fictional brand.
 
-**Live:** <!-- LIVE_URL -->
+**Live:** https://echo-fest-3d.vercel.app
 
 ## Tech stack
 
