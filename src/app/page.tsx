@@ -69,14 +69,16 @@ export default function Home() {
             className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,var(--color-night)_4%,rgb(11_6_20/0.82)_30%,rgb(11_6_20/0)_62%)]"
             aria-hidden="true"
           />
+          {/* soft dark pool behind the copy column so bright tunnel lines don't cut through the text */}
+          <div className="hero-scrim pointer-events-none absolute inset-0" aria-hidden="true" />
           <div className="relative mx-auto w-full max-w-7xl px-4 pb-14 pt-32 sm:px-6 md:pb-20 lg:px-10">
-            <p className="eyebrow text-acid">21—23 August 2027 · Halvard Quarry</p>
+            <p className="eyebrow hero-legible text-acid">21—23 August 2027 · Halvard Quarry</p>
             <h1 id="hero-title" className="mt-4 text-mega font-black uppercase">
               Echo{" "}
               <br />
               <span className="text-coral">Fest</span>
             </h1>
-            <p className="mt-6 max-w-xl text-lg text-ink sm:text-xl">
+            <p className="hero-legible mt-6 max-w-xl text-lg text-ink sm:text-xl">
               Three nights in a quarry that sings back. Press play and the tunnel listens.
             </p>
             <div className="mt-8">

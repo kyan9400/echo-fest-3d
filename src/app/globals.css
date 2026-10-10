@@ -190,3 +190,29 @@ html.reduce-motion [data-reveal] {
 html.reduce-motion .btn {
   transition: none;
 }
+
+/* Hero legibility over the live tunnel: plain gradients and text shadows only (no backdrop-filter) */
+.hero-scrim {
+  background: radial-gradient(
+    ellipse 46% 44% at 28% 58%,
+    rgb(11 6 20 / 0.62) 0%,
+    rgb(11 6 20 / 0.42) 45%,
+    rgb(11 6 20 / 0) 100%
+  );
+}
+@media (max-width: 767px) {
+  .hero-scrim {
+    background: radial-gradient(
+      ellipse 95% 42% at 40% 52%,
+      rgb(11 6 20 / 0.6) 0%,
+      rgb(11 6 20 / 0.4) 50%,
+      rgb(11 6 20 / 0) 100%
+    );
+  }
+}
+.hero-legible {
+  text-shadow:
+    0 0 2px rgb(11 6 20 / 0.95),
+    0 1px 3px rgb(11 6 20 / 0.9),
+    0 0 14px rgb(11 6 20 / 0.8);
+}
