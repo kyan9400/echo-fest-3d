@@ -36,9 +36,19 @@ export default function MobileMenu({ links, cta }: { links: Link[]; cta: Link })
     setOpen(true);
   };
 
-  // focus the first link once the panel is visible
+  // focus the first link once the panel is visible (visibility flips during the fade-in,
+  // and focus() on a still-hidden element is ignored, so retry for a few frames)
   useEffect(() => {
-    if (open) panel.current?.querySelector<HTMLElement>("a")?.focus();
+    if (!open) return;
+    let raf = 0;
+    let tries = 0;
+    const tryFocus = () => {
+      const first = panel.current?.querySelector<HTMLElement>("a");
+      first?.focus({ preventScroll: true });
+      if (first && document.activeElement !== first && ++tries < 30) raf = requestAnimationFrame(tryFocus);
+    };
+    tryFocus();
+    return () => cancelAnimationFrame(raf);
   }, [open]);
 
   // Escape closes from anywhere (focus may sit on the panel background after a tap);
