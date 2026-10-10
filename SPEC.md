@@ -58,7 +58,8 @@ Tone of voice: warm, nocturnal, a bit cheeky, short sentences. No hype clichés 
 | medium | 1.5 | 64×120 | 36 | 900 | no (shader glow only) | yes |
 | low | 1 | 40×80 | 24 | 300 | no | no |
 
-Software renderers → low; Intel/AMD integrated, Mali, Adreno, PowerVR → at most medium; touch devices → at most medium.
+Software renderers (SwiftShader, llvmpipe, softpipe, Microsoft Basic Render, Mesa offscreen, or a context that needs
+`failIfMajorPerformanceCaveat: false`) → no 3D at all, the poster stays (`?quality=` still forces the tunnel on); Intel/AMD integrated, Mali, Adreno, PowerVR → at most medium; touch devices → at most medium.
 drei `<PerformanceMonitor>` lowers DPR on decline and switches bloom off.
 
 **Render loop:** `frameloop="demand"` by default. The loop runs continuously only while the hero is on screen, the tab is
@@ -69,11 +70,12 @@ visible and (motion is allowed OR audio is playing). Otherwise one frame is rend
 the tunnel renders as a still frame. If the visitor starts audio, the wall and gates still respond to the sound
 (user-initiated), but the camera stays put.
 
-**No WebGL / context lost:** a designed CSS/SVG poster (concentric neon rings, vanishing point) replaces the canvas; all
+**No WebGL / software renderer / context lost:** a designed CSS/SVG poster (concentric neon rings, vanishing point) replaces the canvas; all
 content and buttons stay usable (audio still plays).
 
-**Warm-up:** shaders compiled with `gl.compileAsync(scene, camera)` behind a short loader fade; the canvas fades in only
-after the first frame.
+**Warm-up:** the 3D chunk is imported only after window `load` + `requestIdleCallback` (2.5 s timeout). Geometry is built
+in short steps that yield to the main thread, shaders are compiled with `gl.compileAsync(scene, camera)` behind the
+poster, and the canvas fades in (opacity only) after the first frame.
 
 ## 5. Design system
 
@@ -201,9 +203,9 @@ Zero external images, models, textures or audio files.
 
 - First-load JS for `/` < 250 KB gzip, excluding the lazy 3D chunk (target ≈ 130–160 KB: Next + React + page).
 - No GSAP/Lenis on this site: reveals use CSS + one IntersectionObserver; native scroll (no smoothing layer at all).
-- Lazy 3D chunk (three + r3f + the drei helper + postprocessing for high tier) loaded after first paint with
-  `next/dynamic({ ssr: false })`; postprocessing is a second lazy import only on the high tier.
-- LCP element = hero H1 text (server-rendered, font `display: swap`), never the canvas.
+- Lazy 3D chunk (three + r3f + the drei helper + postprocessing for high tier) loaded with a plain `import()` after
+  window `load` + idle, and never on software renderers; postprocessing is a second lazy import only on the high tier.
+- LCP element = hero H1 / lede text (server-rendered, no JS reveal, font `display: swap`), never the canvas.
 - GPU: ≤ 1 draw call per gate group (instanced), 3–4 draw calls total + bloom passes on high.
 - Per frame: 1 texture upload of 64 bytes, zero allocations.
 - Lighthouse mobile ≥ 85 performance, ≥ 95 accessibility / best practices / SEO.

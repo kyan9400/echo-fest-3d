@@ -30,14 +30,16 @@ Exact versions are pinned in `package.json` (see the shared `STACK.md`).
 - **Sparks** are a `Points` field animated entirely in the vertex shader (no CPU work per particle).
 - **Audio.** A 124 BPM generative set — kick, clap, hats, resonant saw bass, detuned pad and an arp through a feedback
   delay — scheduled with a look-ahead clock. The microphone feeds only the analyser, never the speakers.
-- **Performance.** Quality tier chosen before the canvas exists (GPU name via `WEBGL_debug_renderer_info`, touch,
-  cores; `?quality=low|medium|high` overrides), `frameloop="demand"` with the loop running only while the hero is
+- **Performance.** The 3D chunk is imported only after window `load` + an idle callback, never during hydration.
+  Quality tier chosen before the canvas exists (GPU name via `WEBGL_debug_renderer_info` on a throwaway context, touch,
+  cores; `?quality=low|medium|high` overrides); software renderers (SwiftShader, llvmpipe, …) get the poster and
+  never download three.js, `frameloop="demand"` with the loop running only while the hero is
   visible and something animates, adaptive DPR through drei `PerformanceMonitor`, shaders pre-compiled with
   `gl.compileAsync` behind a poster, zero allocations per frame, no `backdrop-filter` over the canvas.
 - **Motion.** `prefers-reduced-motion` is respected by default (still frame, no flight or camera sway) with a
   "Turn on full motion" toggle remembered in `localStorage`; `?motion=full|reduced` overrides. Audio still makes the
   walls respond, the camera stays put.
-- **No WebGL / context lost** → a designed SVG poster of the tunnel; the page and the audio stay fully usable.
+- **No WebGL / software renderer / context lost** → a designed SVG poster of the tunnel; the page and the audio stay fully usable.
 
 ## Run it
 

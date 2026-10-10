@@ -5,6 +5,7 @@
 
 import * as THREE from "three";
 import { getBands } from "@/lib/audio";
+import { yieldToMain } from "@/lib/defer";
 import type { TierSettings } from "@/lib/quality";
 import {
   BANDS,
@@ -55,7 +56,7 @@ export class EchoEngine {
   private readonly historyData = new Uint8Array(BANDS * HISTORY);
   private readonly historyTex: THREE.DataTexture;
   private readonly uniforms;
-  private readonly gates: THREE.InstancedMesh;
+  private gates!: THREE.InstancedMesh;
   private readonly disposables: { dispose: () => void }[] = [];
 
   // per-frame scratch, allocated once
@@ -79,7 +80,19 @@ export class EchoEngine {
   private bassSlow = 0;
   private roll = 0;
 
-  constructor(settings: TierSettings) {
+  /** Builds the engine in short steps, yielding to the main thread between the heavy ones. */
+  static async create(settings: TierSettings): Promise<EchoEngine> {
+    const engine = new EchoEngine(settings);
+    await yieldToMain();
+    engine.buildTunnel();
+    await yieldToMain();
+    engine.buildGates();
+    await yieldToMain();
+    engine.buildSparks();
+    return engine;
+  }
+
+  private constructor(settings: TierSettings) {
     this.settings = settings;
 
     this.historyTex = new THREE.DataTexture(this.historyData, BANDS, HISTORY, THREE.RedFormat, THREE.UnsignedByteType);
@@ -104,8 +117,12 @@ export class EchoEngine {
       uNight: { value: new THREE.Color(PALETTE.night) },
       uPlum: { value: new THREE.Color(PALETTE.plum) },
     };
+    this.disposables.push(this.historyTex);
+  }
 
-    // 1. the tunnel wall
+  // 1. the tunnel wall
+  private buildTunnel() {
+    const settings = this.settings;
     const tunnelGeo = new THREE.CylinderGeometry(
       TUNNEL_RADIUS,
       TUNNEL_RADIUS,
@@ -124,16 +141,26 @@ export class EchoEngine {
     });
     const tunnel = new THREE.Mesh(tunnelGeo, tunnelMat);
     tunnel.frustumCulled = false;
+    this.group.add(tunnel);
+    this.disposables.push(tunnelGeo, tunnelMat);
+  }
 
-    // 2. instanced light gates
+  // 2. instanced light gates
+  private buildGates() {
+    const settings = this.settings;
     const gateGeo = new THREE.TorusGeometry(TUNNEL_RADIUS * 0.86, 0.035, 6, 120);
     const gateMat = new THREE.MeshBasicMaterial({ toneMapped: false, fog: true });
     this.gates = new THREE.InstancedMesh(gateGeo, gateMat, settings.gates);
     this.gates.frustumCulled = false;
     this.color.setRGB(0, 0, 0);
     for (let i = 0; i < settings.gates; i++) this.gates.setColorAt(i, this.color); // colour buffer before compile
+    this.group.add(this.gates);
+    this.disposables.push(gateGeo, gateMat);
+  }
 
-    // 3. sparks, moved entirely in the vertex shader
+  // 3. sparks, moved entirely in the vertex shader
+  private buildSparks() {
+    const settings = this.settings;
     const sparkGeo = new THREE.BufferGeometry();
     const n = settings.sparks;
     const seeds = new Float32Array(n * 4);
@@ -157,8 +184,8 @@ export class EchoEngine {
     const sparks = new THREE.Points(sparkGeo, sparkMat);
     sparks.frustumCulled = false;
 
-    this.group.add(tunnel, this.gates, sparks);
-    this.disposables.push(tunnelGeo, tunnelMat, gateGeo, gateMat, sparkGeo, sparkMat, this.historyTex);
+    this.group.add(sparks);
+    this.disposables.push(sparkGeo, sparkMat);
   }
 
   setPointer(x: number, y: number) {
@@ -255,6 +282,6 @@ export class EchoEngine {
 
   dispose() {
     this.disposables.forEach((d) => d.dispose());
-    this.gates.dispose();
+    this.gates?.dispose();
   }
 }

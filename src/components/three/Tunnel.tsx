@@ -2,20 +2,18 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { yieldToMain } from "@/lib/defer";
 import { TIERS, type Tier } from "@/lib/quality";
 import { EchoEngine, PALETTE } from "./engine";
 import { TUNNEL_LENGTH } from "./shaders";
 
 const Effects = lazy(() => import("./Effects"));
 
-type SceneProps = { tier: Tier; reduced: boolean; onReady: () => void };
+type SceneProps = { engine: EchoEngine; reduced: boolean; onReady: () => void };
 
-function EchoScene({ tier, reduced, onReady }: SceneProps) {
+function EchoScene({ engine, reduced, onReady }: SceneProps) {
   const { gl, scene, camera, invalidate } = useThree();
-  const engine = useMemo(() => new EchoEngine(TIERS[tier]), [tier]);
-
-  useEffect(() => () => engine.dispose(), [engine]);
 
   useEffect(() => {
     const onMove = (e: PointerEvent) =>
@@ -27,7 +25,8 @@ function EchoScene({ tier, reduced, onReady }: SceneProps) {
   // compile every shader behind the poster before the canvas is revealed
   useEffect(() => {
     let alive = true;
-    gl.compileAsync(scene, camera)
+    yieldToMain()
+      .then(() => (alive ? gl.compileAsync(scene, camera) : undefined))
       .catch(() => undefined)
       .finally(() => {
         if (!alive) return;
@@ -71,6 +70,24 @@ export default function Tunnel({ tier, reduced, running, onReady, onLost }: Tunn
   const [dpr, setDpr] = useState(cap);
   const [bloom, setBloom] = useState(settings.bloom);
   const [fellBack, setFellBack] = useState(false);
+  const [engine, setEngine] = useState<EchoEngine | null>(null);
+
+  // geometry is built in short steps before the Canvas mounts, so no single task carries all of it
+  useEffect(() => {
+    let alive = true;
+    let built: EchoEngine | null = null;
+    EchoEngine.create(TIERS[tier]).then((e) => {
+      built = e;
+      if (alive) setEngine(e);
+      else e.dispose();
+    });
+    return () => {
+      alive = false;
+      built?.dispose();
+    };
+  }, [tier]);
+
+  if (!engine) return null;
 
   return (
     <Canvas
@@ -114,7 +131,7 @@ export default function Tunnel({ tier, reduced, running, onReady, onLost }: Tunn
           }}
         />
       )}
-      <EchoScene tier={tier} reduced={reduced} onReady={onReady} />
+      <EchoScene engine={engine} reduced={reduced} onReady={onReady} />
       {bloom && (
         <Suspense fallback={null}>
           <Effects />
