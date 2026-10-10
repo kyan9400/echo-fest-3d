@@ -1,5 +1,6 @@
 import AudioControls from "@/components/AudioControls";
 import LineupTabs from "@/components/LineupTabs";
+import MobileMenu from "@/components/MobileMenu";
 import MotionToggle from "@/components/MotionToggle";
 import ReserveButton from "@/components/ReserveButton";
 import Reveal from "@/components/Reveal";
@@ -54,9 +55,13 @@ export default function Home() {
               ))}
             </ul>
           </nav>
-          <a href="#tickets" className="btn btn-acid !min-h-11 !py-2 text-sm">
-            Tickets
-          </a>
+          <div className="flex items-center gap-2">
+            <MobileMenu links={NAV} cta={{ href: "#tickets", label: "Get tickets" }} />
+            {/* on the narrowest phones the CTA lives in the menu panel, so the header never crowds */}
+            <a href="#tickets" className="btn btn-acid !min-h-11 !py-2 text-sm max-[379px]:hidden">
+              Tickets
+            </a>
+          </div>
         </div>
       </header>
 
@@ -277,8 +282,9 @@ export default function Home() {
       {/* ---------------- FOOTER ---------------- */}
       <footer className="border-t border-plum">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-10">
-          <p className="font-display text-[clamp(2.4rem,11vw,8rem)] font-black uppercase leading-none tracking-tight text-plum" aria-hidden="true">
-            Echo<span className="text-coral">/</span>Fest
+          {/* decorative ghost wordmark: drawn by CSS pseudo-elements (see .ghost-mark) so it is a graphic, not text */}
+          <p className="ghost-mark font-display text-[clamp(2.4rem,11vw,8rem)] font-black uppercase leading-none tracking-tight text-plum" aria-hidden="true">
+            <span className="text-coral" />
           </p>
           <div className="mt-10 flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
             <div className="space-y-2 text-sm text-haze">

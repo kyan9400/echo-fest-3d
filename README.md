@@ -56,7 +56,7 @@ If the build runs out of memory on Windows: `set NODE_OPTIONS=--max-old-space-si
 ## Project layout
 
 ```
-src/app/            layout, page, 404, OG image, favicon, robots, sitemap, global styles (design tokens)
+src/app/            layout, page, 404, OG/Twitter image (site screenshot), favicon, robots, sitemap, global styles (design tokens)
 src/components/     page UI (audio controls, lineup tabs, motion toggle, poster, reveal)
 src/components/three/  Tunnel (Canvas), engine (scene + per-frame update), shaders, bloom effects
 src/lib/            audio engine, quality tiers, motion preference, site copy

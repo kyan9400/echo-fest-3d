@@ -19,7 +19,7 @@ const description =
   "Three nights of electronic and alternative music in a granite quarry that sings back. 62 acts, four stages, 9,000 people. Lineup, tickets and travel.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://echo-fest-3d.vercel.app"),
+  metadataBase: new URL("https://echo-fest-3d.vercel.app"),
   title: { default: title, template: "%s · Echo Fest" },
   description,
   applicationName: "Echo Fest",
@@ -29,6 +29,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
+    url: "/",
     title,
     description,
     siteName: "Echo Fest",

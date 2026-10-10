@@ -194,7 +194,7 @@ H2: "Questions"
 | Demo audio set | code (WebAudio oscillators + noise) | own |
 | No-WebGL poster | CSS gradients + inline SVG | own |
 | Favicon (`app/icon.svg`) | hand-written SVG | own |
-| OG image | `next/og` `ImageResponse` | own |
+| OG / Twitter image | screenshot of the live site (`app/opengraph-image.png`, `app/twitter-image.png`) | own |
 | Unbounded, Manrope | Google Fonts via next/font | SIL OFL 1.1 |
 
 Zero external images, models, textures or audio files.
