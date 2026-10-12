@@ -206,7 +206,7 @@ export default function Home() {
         </section>
 
         {/* ---------------- LINEUP ---------------- */}
-        <section id="lineup" aria-labelledby="lineup-title" className="bg-dusk py-24 md:py-32">
+        <section id="lineup" aria-labelledby="lineup-title" className="chapter-lights chapter-lineup bg-dusk py-24 md:py-32">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
             <div className="flex flex-wrap items-end justify-between gap-6" data-reveal>
               <div>
@@ -224,7 +224,7 @@ export default function Home() {
         </section>
 
         {/* ---------------- STAGES: editorial list ---------------- */}
-        <section id="stages" aria-labelledby="stages-title" className="py-24 md:py-32">
+        <section id="stages" aria-labelledby="stages-title" className="chapter-lights chapter-stages py-24 md:py-32">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
             <div data-reveal>
               <Eyebrow index="03" className="text-acid">
@@ -285,7 +285,7 @@ export default function Home() {
         <section
           id="tickets"
           aria-labelledby="tickets-title"
-          className="relative overflow-hidden bg-[radial-gradient(ellipse_at_50%_0%,#2b1446_0%,var(--color-night)_62%)] py-24 md:py-32 lg:py-40"
+          className="chapter-lights chapter-tickets relative overflow-hidden bg-[radial-gradient(ellipse_at_50%_0%,#2b1446_0%,var(--color-night)_62%)] py-24 md:py-32 lg:py-40"
         >
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
             <div className="max-w-2xl" data-reveal>

@@ -145,7 +145,7 @@ export default function Tunnel({ tier, reduced, running, audio, onReady, onLost 
         stencil: false,
         depth: true,
       }}
-      camera={{ fov: 72, near: 0.1, far: 140, position: [0, 0, 0] }}
+      camera={{ fov: 72, near: 0.1, far: 260, position: [0, -2.2, 40] }}
       onCreated={({ gl }) => {
         gl.toneMapping = ACESFilmicToneMapping;
         gl.toneMappingExposure = 1.05;

@@ -62,12 +62,36 @@ Tone of voice: warm, nocturnal, a bit cheeky, short sentences. No hype clichés 
   size), gates brighten, hero copy lifts and fades. p 0.65-0.72 the drop: white shockwave down the walls, gates flash,
   camera rolls 6°; with the demo set playing, a riser cut and a bar of doubled kicks. p 0.72-1 the walls open (x3.5,
   fading out), gates scatter outward and the portal grows into the coral glow that the About section continues.
-  Reduced motion: no tall track, the 3D shows a still frame of the p = 0.4 composition.
+  Reduced motion: no tall track, the 3D shows a still frame of the main stage (p = 0).
 - **Audio:** WebAudio graph built after a click. A generative 124 BPM demo set (kick = sine pitch drop, hats = filtered
   noise, bass = sawtooth through a resonant low-pass, pad = detuned triangles) scheduled with a 100 ms look-ahead
   scheduler. All voices → master gain → `AnalyserNode` (fftSize 128) → speakers. The microphone (optional,
   `getUserMedia` after a click) connects only to the analyser, never to the speakers (no feedback). With no audio running
   the tunnel uses a procedural "idle breath" spectrum so it is never dead.
+
+- **The main stage (redesign):** the first frame is no longer inside the tunnel: the visitor stands in the crowd,
+  33 m from a headline stage in the quarry. A 40 m LED wall (LED pixel grid + cabinet seams faded with distance) has
+  the tunnel mouth cut into its centre, framed by three LED rings that chase on the beat; the wall plays echo
+  wavefronts leaving the mouth (one every two beats, colour changing per wave) and spectrum bars on the wings from the
+  same audio history the tunnel uses. Around it: truss towers and a front truss with moving heads, hanging J-curve
+  line arrays, a roof slab, subs, barrier; camera-facing beam quads (a fan rising from behind the wall + beams from the
+  truss onto the crowd) whose bodies are modulated by two lookups of a baked 128x128 tiling noise texture (haze),
+  laser fans sweeping over the crowd (a bar of rest every four), lens flares, two additive haze sheets, falling
+  confetti, a crowd of 800-2600 instanced silhouettes rim-lit by the stage that jump on the beat (30% with arms up,
+  many holding phone lights, some firing camera flashes), terraced quarry walls with a jagged rim, sky glow and stars.
+  A fake 124 bpm beat clock drives all of it with no microphone; live audio adds its own kicks. Desktop frames the
+  stage to the right of the headline, phones put the tunnel mouth above it. Scroll: p 0.08-0.45 the camera flies over
+  the crowd and through the mouth into the tunnel (fov eases from the hero fov to 72), then the existing build-up,
+  drop and portal run over p 0.45-1. Reduced motion shows a still frame of the stage. Chapters below the hero (lineup,
+  stages, tickets) carry CSS rig lights (conic-gradient beams + an LED strip) in their own colour pair. All stage
+  shaders are short (no inline multi-octave noise); page load to canvas reveal measured ~1.5 s on the production build
+  (Windows Chrome, ANGLE/D3D11).
+
+| tier | crowd | phones | beams (up+down) | laser fans x rays | confetti | haze sheets |
+|---|---|---|---|---|---|---|
+| high | 2600 | 420 | 7+10 | 5x7 | 700 | yes |
+| medium | 1600 | 260 | 6+7 | 4x5 | 380 | yes |
+| low | 800 | 130 | 5+4 | 3x4 | 160 | no |
 
 **Quality tiers** (decided before the Canvas is created; GPU name via `WEBGL_debug_renderer_info`; `?quality=` overrides):
 

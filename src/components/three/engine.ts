@@ -24,6 +24,8 @@ import {
   tunnelFragment,
   tunnelVertex,
 } from "./shaders";
+import { StageWorld, makeNoiseTexture } from "./stage";
+import { WALL_Z } from "./stageShaders";
 
 export const PALETTE = {
   acid: "#c8ff3d",
@@ -42,6 +44,9 @@ const PORTAL_Z = -TUNNEL_LENGTH * 0.97;
 const MAX_PUSH = 26; // how far the camera dollies in during the build-up
 const BASE_FOV = 72;
 const INTRO_TIME = 1.4;
+const HERO_Z = 40; // first frame: in the crowd, 33 m from the LED wall
+const HERO_Y = -2.2;
+const BPM_HZ = 124 / 60;
 
 // JS twin of the GLSL bend() so the gates sit inside the walls
 function bendX(z: number, t: number) {
@@ -139,6 +144,8 @@ export class EchoEngine {
   private housingMat: THREE.MeshStandardMaterial | null = null;
   private envTarget: THREE.WebGLRenderTarget | null = null;
   private portal!: THREE.Mesh;
+  private stage!: StageWorld;
+  private readonly noiseTex: THREE.DataTexture;
   private readonly disposables: { dispose: () => void }[] = [];
 
   // per-frame scratch, allocated once
@@ -159,6 +166,7 @@ export class EchoEngine {
   private acc = 0;
   private clock = 0; // motion time (frozen when reduced)
   private idleClock = 0;
+  private beatClock = 0;
   private travel = 0;
   private bass = 0;
   private bassSlow = 0;
@@ -179,6 +187,17 @@ export class EchoEngine {
     await yieldToMain();
     engine.buildSparks();
     engine.buildPortal();
+    // the stage world in front of the tunnel mouth
+    const stage = new StageWorld(settings, engine.uniforms);
+    engine.stage = stage;
+    await yieldToMain();
+    stage.buildWorld();
+    stage.buildStage(ledVertex, ledFragment);
+    await yieldToMain();
+    stage.buildCrowd();
+    await yieldToMain();
+    stage.buildLights();
+    engine.group.add(stage.group);
     return engine;
   }
 
@@ -193,6 +212,9 @@ export class EchoEngine {
     idleBands(0.8, this.bands);
     for (let r = 0; r < HISTORY; r++) this.historyData.set(this.bands, r * BANDS);
     this.historyTex.needsUpdate = true;
+
+    this.noiseTex = makeNoiseTexture();
+    this.disposables.push(this.noiseTex);
 
     const neon = (hex: string) => new THREE.Color(hex).multiplyScalar(BOOST);
     this.uniforms = {
@@ -222,6 +244,14 @@ export class EchoEngine {
       uHaloGain: { value: settings.halo },
       uHaloRadius: { value: GATE_R },
       uPortalCore: { value: 1 },
+      // stage world
+      uBeat: { value: 0 },
+      uBeatPhase: { value: 0 },
+      uBeatClock: { value: 0 },
+      uNoise: { value: this.noiseTex },
+      uFly: { value: 0 },
+      uRayGain: { value: new THREE.Vector3(1, 1, 1) },
+      uLensGain: { value: 1 },
     };
     this.disposables.push(this.historyTex);
   }
@@ -417,14 +447,15 @@ export class EchoEngine {
     }
     u.uIntro.value = this.intro * this.intro * (3 - 2 * this.intro);
     if (reduced) {
-      this.drop = 0.4; // still frame of the build-up composition
+      this.drop = 0; // still frame of the main stage
     } else {
       const diff = this.scrollTarget - this.drop;
       this.drop = Math.abs(diff) < 0.0005 ? this.scrollTarget : this.drop + diff * Math.min(1, delta * 8);
       if (this.drop !== this.scrollTarget) again = true;
     }
     const p = this.drop;
-    const build = smooth(0.15, 0.65, p);
+    const fly = smooth(0.08, 0.45, p); // crowd -> through the LED wall into the tunnel mouth
+    const build = smooth(0.45, 0.65, p); // inside the tunnel: speed-up + dolly zoom
     const shock = clamp01((p - 0.65) / 0.07);
     const flash = shock > 0 && shock < 1 ? Math.sin(Math.PI * shock) : 0;
     const open = smooth(0.72, 1, p);
@@ -463,6 +494,20 @@ export class EchoEngine {
     const kick = Math.max(0, this.bass - this.bassSlow);
     u.uBass.value = Math.min(1, kick * 4 + (live ? this.bass * 0.25 : 0));
 
+    // fake 124 bpm beat clock for the stage (no microphone needed); live audio adds its own kicks
+    if (moving) this.beatClock += delta;
+    const beats = (0.05 + this.beatClock) * BPM_HZ;
+    const beatPhase = beats % 1;
+    const env = Math.exp(-beatPhase * 5);
+    const beat = live ? Math.min(1, Math.max(kick * 4, env * 0.5)) : env;
+    const bar = Math.floor(beats / 4);
+    u.uBeat.value = beat;
+    u.uBeatPhase.value = beatPhase;
+    u.uBeatClock.value = beats;
+    u.uFly.value = fly;
+    const lasersOn = bar % 4 === 3 ? 0.12 : 1; // a bar of rest every four
+    u.uRayGain.value.set(0.9 + fly * 0.5, 0.7 + beat * 0.5, (0.5 + beat * 0.5) * (0.8 + fly * 0.8) * lasersOn);
+
     // 4. flight (only with motion); the build-up ramps the speed x1 -> x5
     if (moving) {
       this.clock += delta;
@@ -472,14 +517,23 @@ export class EchoEngine {
     u.uTravel.value = this.travel;
     u.uPixelRatio.value = dpr;
 
-    // 5. dolly zoom: the camera pushes in while the fov widens, so the portal holds its size
+    // 5. camera path: crowd -> LED wall -> tunnel; inside, a dolly zoom (push in, fov widens, portal holds its size)
+    const persp = camera as THREE.PerspectiveCamera;
+    const aspect = persp.isPerspectiveCamera ? persp.aspect : 1.6;
+    const wide = smooth(0.8, 1.4, aspect); // 0 = phone portrait, 1 = desktop
+    const heroFov = 66 - 20 * wide;
+    const heroHalfH = Math.tan((heroFov / 2) * THREE.MathUtils.DEG2RAD) * (HERO_Z - WALL_Z);
+    // desktop: the stage sits right of the headline; phone: the tunnel mouth sits above it
+    const heroLookX = -0.34 * heroHalfH * aspect * wide;
+    const heroLookY = (1 - wide) * -0.4 * heroHalfH + wide * 2.6;
     const push = build * MAX_PUSH;
-    const camZ = -push;
+    const camZ = HERO_Z + (-push - HERO_Z) * fly;
     const portalDist = -PORTAL_Z;
     const half = Math.atan((Math.tan((BASE_FOV / 2) * THREE.MathUtils.DEG2RAD) * portalDist) / (portalDist - push));
-    const persp = camera as THREE.PerspectiveCamera;
+    this.stage.group.visible = camZ > WALL_Z - 4;
     if (persp.isPerspectiveCamera) {
-      const fov = half * 2 * THREE.MathUtils.RAD2DEG;
+      const tunnelFov = half * 2 * THREE.MathUtils.RAD2DEG;
+      const fov = heroFov + (tunnelFov - heroFov) * smooth(0.3, 1, fly);
       if (Math.abs(persp.fov - fov) > 0.01) {
         persp.fov = fov;
         persp.updateProjectionMatrix();
@@ -518,6 +572,15 @@ export class EchoEngine {
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     if (this.halos) this.halos.visible = this.glow;
 
+    // 6b. LED rings around the mouth chase on the beat
+    const ring = this.stage.ringFrame;
+    for (let i = 0; i < 3; i++) {
+      const lag = (beatPhase * 3 + 3 - i) % 3;
+      this.color.copy(this.gateColors[(i + bar) % 3]).multiplyScalar(0.18 + Math.exp(-lag * 2.5) * 0.9 * (0.4 + beat * 0.6));
+      ring.setColorAt(i, this.color);
+    }
+    if (ring.instanceColor) ring.instanceColor.needsUpdate = true;
+
     // 7. the portal sits on the bend, pulses with the bass and grows into a full-screen glow
     this.portal.position.set(bendX(PORTAL_Z, this.clock), bendY(PORTAL_Z, this.clock), PORTAL_Z);
     const ps = 1 + open * 18;
@@ -531,9 +594,19 @@ export class EchoEngine {
       this.cam.y += (-this.pointer.y * 0.55 - this.cam.y) * k;
       this.roll += (kick * 0.6 - this.roll) * Math.min(1, delta * 6);
     }
-    camera.position.set(this.cam.x + bendX(camZ, this.clock), this.cam.y + bendY(camZ, this.clock), camZ);
+    const sway = 1 + (1 - fly) * 1.2;
+    camera.position.set(
+      this.cam.x * sway + bendX(camZ, this.clock),
+      HERO_Y * (1 - fly) + this.cam.y * sway * 0.6 + bendY(camZ, this.clock),
+      camZ,
+    );
     const lz = camZ - 26;
-    this.look.set(bendX(lz, this.clock) * 0.8, bendY(lz, this.clock) * 0.8, lz);
+    const aim = smooth(0, 0.7, fly);
+    this.look.set(
+      heroLookX + this.cam.x * 0.4 + (bendX(lz, this.clock) * 0.8 - heroLookX - this.cam.x * 0.4) * aim,
+      heroLookY + (bendY(lz, this.clock) * 0.8 - heroLookY) * aim,
+      WALL_Z + (lz - WALL_Z) * aim,
+    );
     camera.lookAt(this.look);
     camera.rotateZ(Math.sin(this.clock * 0.3) * 0.04 + this.roll * 0.12 + smooth(0.65, 0.72, p) * 0.105);
     camera.updateMatrixWorld();
@@ -541,7 +614,7 @@ export class EchoEngine {
     // 9. stage light travelling down the tunnel (view space for the wall shader)
     // it starts ahead of the camera (so a still frame is lit), drifts away, fades out and comes round again
     const lightDist = 8 + ((20 + this.travel * 0.6) % (TUNNEL_LENGTH * 0.75));
-    const lightZ = camZ - lightDist;
+    const lightZ = Math.min(camZ, 0) - lightDist;
     this.lightPos.set(bendX(lightZ, this.clock), bendY(lightZ, this.clock), lightZ).applyMatrix4(camera.matrixWorldInverse);
     u.uLightView.value.copy(this.lightPos);
     u.uLightGain.value =
@@ -553,6 +626,7 @@ export class EchoEngine {
   dispose() {
     this.disposables.forEach((d) => d.dispose());
     this.envTarget?.dispose();
+    this.stage?.dispose();
     this.halos?.dispose();
     this.housing?.dispose();
     this.gates?.dispose();

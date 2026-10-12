@@ -561,3 +561,65 @@ html.reduce-motion .edition-line {
   transform-origin: bottom;
   transform: scaleY(0.12);
 }
+
+/* ================= Redesign: stage light per chapter =================
+   Cheap CSS rig lights (conic-gradient beams + an LED strip) so each chapter below the hero keeps the
+   festival look with its own colour: lineup acid/coral, stages coral/cyan, tickets cyan/acid. */
+.chapter-lights {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  --beam: 200 255 61;
+  --beam2: 255 92 134;
+}
+.chapter-stages {
+  --beam: 255 92 134;
+  --beam2: 69 230 255;
+}
+.chapter-tickets {
+  --beam: 69 230 255;
+  --beam2: 200 255 61;
+}
+.chapter-lights::before {
+  content: "";
+  position: absolute;
+  inset: 0 -25% auto;
+  height: min(130%, 1100px);
+  z-index: -1;
+  pointer-events: none;
+  transform-origin: 50% 0;
+  background:
+    conic-gradient(from 160deg at 18% -2%, transparent 0deg, rgb(var(--beam) / 0.26) 5deg, transparent 10deg, transparent 22deg, rgb(var(--beam2) / 0.18) 26deg, transparent 31deg, transparent 44deg, rgb(var(--beam) / 0.13) 48deg, transparent 53deg),
+    conic-gradient(from 148deg at 82% -2%, transparent 0deg, rgb(var(--beam2) / 0.22) 5deg, transparent 10deg, transparent 20deg, rgb(var(--beam) / 0.16) 25deg, transparent 30deg, transparent 42deg, rgb(var(--beam2) / 0.12) 46deg, transparent 51deg),
+    radial-gradient(ellipse 55% 28% at 50% 0%, rgb(var(--beam) / 0.16), transparent 72%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 35%, transparent 92%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 35%, transparent 92%);
+}
+/* LED strip along the top edge of the chapter */
+.chapter-lights::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  z-index: -1;
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg, rgb(var(--beam)) 0 6px, transparent 6px 10px);
+  box-shadow: 0 0 18px 2px rgb(var(--beam) / 0.45);
+  opacity: 0.7;
+}
+@keyframes chapter-sweep {
+  from {
+    transform: rotate(-2.5deg);
+  }
+  to {
+    transform: rotate(2.5deg);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  html:not(.reduce-motion) .chapter-lights::before {
+    animation: chapter-sweep 7s ease-in-out infinite alternate;
+  }
+}
+html.full-motion .chapter-lights::before {
+  animation: chapter-sweep 7s ease-in-out infinite alternate;
+}

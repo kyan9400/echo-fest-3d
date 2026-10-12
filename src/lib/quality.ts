@@ -28,12 +28,21 @@ export type TierSettings = {
   /** LED torus [tube, ring] segments */
   tube: [number, number];
   antialias: boolean;
+  /** stage world: fans, phone lights, beams, laser fans x rays, confetti, haze sheets */
+  crowd: number;
+  phones: number;
+  upBeams: number;
+  downBeams: number;
+  laserFans: number;
+  laserRays: number;
+  confetti: number;
+  haze: boolean;
 };
 
 export const TIERS: Record<Tier, TierSettings> = {
-  high: { dprCap: 2, radial: 96, length: 160, gates: 48, sparks: 1800, bloom: true, halo: 1, housing: true, rockOctaves: 3, tube: [12, 160], antialias: true },
-  medium: { dprCap: 1.5, radial: 64, length: 120, gates: 36, sparks: 900, bloom: true, halo: 0.5, housing: true, rockOctaves: 2, tube: [12, 160], antialias: true },
-  low: { dprCap: 1, radial: 40, length: 80, gates: 24, sparks: 300, bloom: false, halo: 0, housing: false, rockOctaves: 1, tube: [8, 96], antialias: false },
+  high: { dprCap: 2, radial: 96, length: 160, gates: 48, sparks: 1800, bloom: true, halo: 1, housing: true, rockOctaves: 3, tube: [12, 160], antialias: true, crowd: 2600, phones: 420, upBeams: 7, downBeams: 10, laserFans: 5, laserRays: 7, confetti: 700, haze: true },
+  medium: { dprCap: 1.5, radial: 64, length: 120, gates: 36, sparks: 900, bloom: true, halo: 0.5, housing: true, rockOctaves: 2, tube: [12, 160], antialias: true, crowd: 1600, phones: 260, upBeams: 6, downBeams: 7, laserFans: 4, laserRays: 5, confetti: 380, haze: true },
+  low: { dprCap: 1, radial: 40, length: 80, gates: 24, sparks: 300, bloom: false, halo: 0, housing: false, rockOctaves: 1, tube: [8, 96], antialias: false, crowd: 800, phones: 130, upBeams: 5, downBeams: 4, laserFans: 3, laserRays: 4, confetti: 160, haze: false },
 };
 
 function isTier(value: string | null): value is Tier {
