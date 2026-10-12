@@ -9,6 +9,7 @@ export default function AudioControls() {
     <div>
       <div className="flex flex-wrap gap-3">
         <button
+          id="play-set"
           type="button"
           className="btn btn-acid"
           aria-pressed={playing}
@@ -20,13 +21,14 @@ export default function AudioControls() {
         <button
           type="button"
           className="btn btn-line"
+          data-magnetic
           aria-pressed={mic}
           onClick={() => (mic ? stopMic() : void startMic())}
         >
           <MicIcon />
           {mic ? "Mic is on — turn off" : "Use my microphone"}
         </button>
-        <a href="#tickets" className="btn btn-line">
+        <a href="#tickets" className="btn btn-line" data-magnetic>
           Get tickets
         </a>
       </div>

@@ -17,14 +17,23 @@ export type TierSettings = {
   length: number;
   gates: number;
   sparks: number;
+  /** halo sprites on (the glow that replaced post-processing bloom) */
   bloom: boolean;
+  /** halo strength: high 1, medium half */
+  halo: number;
+  /** aluminium housings behind the LED gates */
+  housing: boolean;
+  /** value-noise octaves in the rock shader */
+  rockOctaves: number;
+  /** LED torus [tube, ring] segments */
+  tube: [number, number];
   antialias: boolean;
 };
 
 export const TIERS: Record<Tier, TierSettings> = {
-  high: { dprCap: 2, radial: 96, length: 160, gates: 48, sparks: 1800, bloom: true, antialias: false },
-  medium: { dprCap: 1.5, radial: 64, length: 120, gates: 36, sparks: 900, bloom: false, antialias: true },
-  low: { dprCap: 1, radial: 40, length: 80, gates: 24, sparks: 300, bloom: false, antialias: false },
+  high: { dprCap: 2, radial: 96, length: 160, gates: 48, sparks: 1800, bloom: true, halo: 1, housing: true, rockOctaves: 3, tube: [12, 160], antialias: true },
+  medium: { dprCap: 1.5, radial: 64, length: 120, gates: 36, sparks: 900, bloom: true, halo: 0.5, housing: true, rockOctaves: 2, tube: [12, 160], antialias: true },
+  low: { dprCap: 1, radial: 40, length: 80, gates: 24, sparks: 300, bloom: false, halo: 0, housing: false, rockOctaves: 1, tube: [8, 96], antialias: false },
 };
 
 function isTier(value: string | null): value is Tier {

@@ -177,3 +177,11 @@ export const FAQ = [
     a: "Only if you ask it to. The demo set is generated in your browser, and the microphone feed is analysed on your device and never recorded or sent anywhere.",
   },
 ];
+
+// Past editions: the fictional brand's history (social proof without fake quotes)
+export const EDITIONS = [
+  { year: "2019", text: "140 people, one borrowed rig, one very loud night." },
+  { year: "2021", text: "The Shaft opens. Someone cries during the sunrise set." },
+  { year: "2024", text: "Rewilding fund plants its 10,000th pine." },
+  { year: "2026", text: "9,000 tickets, gone in 41 minutes." },
+];

@@ -2,18 +2,28 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ACESFilmicToneMapping } from "three";
 import { yieldToMain } from "@/lib/defer";
 import { TIERS, type Tier } from "@/lib/quality";
+import { onHeroProgress } from "@/lib/scroll";
 import { EchoEngine, PALETTE } from "./engine";
 import { TUNNEL_LENGTH } from "./shaders";
 
-const Effects = lazy(() => import("./Effects"));
+type SceneProps = {
+  engine: EchoEngine;
+  reduced: boolean;
+  glow: boolean;
+  throttled: boolean;
+  onReady: () => void;
+};
 
-type SceneProps = { engine: EchoEngine; reduced: boolean; onReady: () => void };
-
-function EchoScene({ engine, reduced, onReady }: SceneProps) {
+function EchoScene({ engine, reduced, glow, throttled, onReady }: SceneProps) {
   const { gl, scene, camera, invalidate } = useThree();
+  const reducedRef = useRef(reduced);
+  useEffect(() => {
+    reducedRef.current = reduced;
+  }, [reduced]);
 
   useEffect(() => {
     const onMove = (e: PointerEvent) =>
@@ -22,14 +32,29 @@ function EchoScene({ engine, reduced, onReady }: SceneProps) {
     return () => window.removeEventListener("pointermove", onMove);
   }, [engine]);
 
-  // compile every shader behind the poster before the canvas is revealed
+  // the drop: scroll progress goes straight to the engine (no React state) and asks for a frame
+  useEffect(
+    () =>
+      onHeroProgress((p) => {
+        engine.setScroll(p);
+        invalidate();
+      }),
+    [engine, invalidate],
+  );
+
+  // build the env map, then compile every shader behind the poster before the canvas is revealed
   useEffect(() => {
     let alive = true;
     yieldToMain()
-      .then(() => (alive ? gl.compileAsync(scene, camera) : undefined))
+      .then(() => {
+        if (!alive) return;
+        engine.prepare(gl);
+        return gl.compileAsync(scene, camera);
+      })
       .catch(() => undefined)
       .finally(() => {
         if (!alive) return;
+        engine.startIntro(reducedRef.current);
         invalidate();
         requestAnimationFrame(() => {
           if (alive) onReady();
@@ -40,12 +65,26 @@ function EchoScene({ engine, reduced, onReady }: SceneProps) {
     };
   }, [gl, scene, camera, invalidate, onReady, engine]);
 
+  useEffect(() => {
+    engine.setGlow(glow);
+    invalidate();
+  }, [engine, glow, invalidate]);
+
+  // medium/low ambient loop: 30 fps on demand instead of the full refresh rate
+  useEffect(() => {
+    if (!throttled) return;
+    const id = window.setInterval(() => invalidate(), 1000 / 30);
+    return () => window.clearInterval(id);
+  }, [throttled, invalidate]);
+
   // a still frame needs redrawing when the motion setting changes
   useEffect(() => {
     invalidate();
   }, [reduced, invalidate]);
 
-  useFrame((state, delta) => engine.update(delta, state.camera, state.viewport.dpr, reduced));
+  useFrame((state, delta) => {
+    if (engine.update(delta, state.camera, state.viewport.dpr, reduced)) state.invalidate();
+  });
 
   return (
     <>
@@ -60,15 +99,17 @@ export type TunnelProps = {
   tier: Tier;
   reduced: boolean;
   running: boolean;
+  /** demo set or mic is live */
+  audio: boolean;
   onReady: () => void;
   onLost: () => void;
 };
 
-export default function Tunnel({ tier, reduced, running, onReady, onLost }: TunnelProps) {
+export default function Tunnel({ tier, reduced, running, audio, onReady, onLost }: TunnelProps) {
   const settings = TIERS[tier];
   const [cap] = useState(() => Math.min(window.devicePixelRatio || 1, settings.dprCap));
   const [dpr, setDpr] = useState(cap);
-  const [bloom, setBloom] = useState(settings.bloom);
+  const [glow, setGlow] = useState(settings.bloom);
   const [fellBack, setFellBack] = useState(false);
   const [engine, setEngine] = useState<EchoEngine | null>(null);
 
@@ -89,11 +130,14 @@ export default function Tunnel({ tier, reduced, running, onReady, onLost }: Tunn
 
   if (!engine) return null;
 
+  // full refresh rate only with live audio or on the high tier; otherwise 30 fps on demand
+  const continuous = running && (audio || tier === "high");
+  const throttled = running && !continuous;
+
   return (
     <Canvas
-      frameloop={running ? "always" : "demand"}
+      frameloop={continuous ? "always" : "demand"}
       dpr={dpr}
-      flat
       gl={{
         antialias: settings.antialias,
         powerPreference: "high-performance",
@@ -103,6 +147,8 @@ export default function Tunnel({ tier, reduced, running, onReady, onLost }: Tunn
       }}
       camera={{ fov: 72, near: 0.1, far: 140, position: [0, 0, 0] }}
       onCreated={({ gl }) => {
+        gl.toneMapping = ACESFilmicToneMapping;
+        gl.toneMappingExposure = 1.05;
         gl.domElement.addEventListener(
           "webglcontextlost",
           (e) => {
@@ -117,11 +163,11 @@ export default function Tunnel({ tier, reduced, running, onReady, onLost }: Tunn
     >
       {/* PerformanceMonitor measures the time between drawn frames, so it only runs while the loop is
           continuous: on-demand frames are sparse and would read as a slow GPU. */}
-      {running && !fellBack && (
+      {continuous && !fellBack && (
         <PerformanceMonitor
           flipflops={3}
           onDecline={() => {
-            setBloom(false);
+            setGlow(false);
             setDpr((d) => Math.max(0.75, Math.round((d - 0.25) * 100) / 100));
           }}
           onIncline={() => setDpr((d) => Math.min(cap, Math.round((d + 0.25) * 100) / 100))}
@@ -131,12 +177,7 @@ export default function Tunnel({ tier, reduced, running, onReady, onLost }: Tunn
           }}
         />
       )}
-      <EchoScene engine={engine} reduced={reduced} onReady={onReady} />
-      {bloom && (
-        <Suspense fallback={null}>
-          <Effects />
-        </Suspense>
-      )}
+      <EchoScene engine={engine} reduced={reduced} glow={glow} throttled={throttled} onReady={onReady} />
     </Canvas>
   );
 }

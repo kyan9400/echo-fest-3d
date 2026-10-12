@@ -23,11 +23,13 @@ Tone of voice: warm, nocturnal, a bit cheeky, short sentences. No hype clichés 
    + "Get tickets".
 2. **About** ("The valley answers back") — what Echo Fest is, four stats.
 3. **Lineup** — three day tabs (Fri / Sat / Sun), headliners large, the rest in a dense type wall.
-4. **Stages** — four stages, each with a character and a colour.
-5. **Tickets** — three tiers, prices, what's included; concept notice on reserve.
-6. **Plan your trip** — getting there, camping, accessibility, sound & safety.
-7. **FAQ** — six questions in native disclosure widgets.
-8. **Footer** — newsletter-free; credits line, "Concept project — fictional brand.", "© 2026 Alhassan Alfarran",
+4. **Stages** — four stages as an editorial list, each with a character and a colour.
+5. **Past editions** — a fictional four-step timeline (social proof without fake quotes or real brands).
+6. **Tickets** — three tiers, prices, what's included; concept notice on reserve.
+7. **Plan your trip** — getting there, camping, accessibility, sound & safety.
+8. **FAQ** — six questions in native disclosure widgets.
+9. **Final CTA** — "See you in the quarry", tickets + demo set.
+10. **Footer** — newsletter-free; credits line, "Concept project — fictional brand.", "© 2026 Alhassan Alfarran",
    link to the designer's portfolio.
 
 ## 4. Signature 3D moment — the Echo Tunnel
@@ -44,6 +46,23 @@ Tone of voice: warm, nocturnal, a bit cheeky, short sentences. No hype clichés 
 - A `Points` field of drifting sparks (count by tier) moving through the tunnel in the vertex shader (time uniform only;
   no CPU work per particle).
 - The camera sways gently with the pointer (damped) and rolls slightly on bass hits.
+- **Lighting and material (upgrade):** analytic wall normals (four extra history samples per vertex), value-noise
+  granite with panel seams (every 6th rib / 4th ring), a travelling stage light (half-Lambert + Blinn-Phong, specular
+  scaled by the audio bulge), a fresnel rim, a wet floor band and gate light spill on the rock. ACES tone mapping
+  (exposure 1.05) with a x1.15 linear pre-boost on the neon colours.
+- **Gates as fixtures:** smooth LED tori (12x160 segments; 8x96 on low) with an HDR core, aluminium housings
+  (rounded-rect sweep, `MeshStandardMaterial` + a one-time PMREM of a code-made studio) on high/medium, and additive
+  halo sprites instead of post-processing bloom. Housings and halos share the LED instance-matrix buffer.
+- **The quarry exit:** an additive portal disc (white core -> coral) with a thin cyan ring at the far end; the poster has
+  the same warm core so the crossfade is seamless.
+- **Intro "lights on":** `uIntro` 0 -> 1 over 1.4 s after the canvas is ready; grid, gates and halos light up from the
+  camera into the depth.
+- **The drop (signature scroll moment):** the hero is a sticky scroll track (220svh, 170svh below md, motion only).
+  p 0.15-0.65 build-up: speed x1 -> x5, dolly zoom (camera pushes 26 units while the fov widens so the portal holds its
+  size), gates brighten, hero copy lifts and fades. p 0.65-0.72 the drop: white shockwave down the walls, gates flash,
+  camera rolls 6°; with the demo set playing, a riser cut and a bar of doubled kicks. p 0.72-1 the walls open (x3.5,
+  fading out), gates scatter outward and the portal grows into the coral glow that the About section continues.
+  Reduced motion: no tall track, the 3D shows a still frame of the p = 0.4 composition.
 - **Audio:** WebAudio graph built after a click. A generative 124 BPM demo set (kick = sine pitch drop, hats = filtered
   noise, bass = sawtooth through a resonant low-pass, pad = detuned triangles) scheduled with a 100 ms look-ahead
   scheduler. All voices → master gain → `AnalyserNode` (fftSize 128) → speakers. The microphone (optional,
@@ -54,16 +73,17 @@ Tone of voice: warm, nocturnal, a bit cheeky, short sentences. No hype clichés 
 
 | tier | DPR cap | tunnel segments | gates | sparks | bloom | antialias |
 |---|---|---|---|---|---|---|
-| high | 2 | 96×160 | 48 | 1800 | yes (postprocessing Bloom, mipmap blur) | no (bloom pass) |
-| medium | 1.5 | 64×120 | 36 | 900 | no (shader glow only) | yes |
-| low | 1 | 40×80 | 24 | 300 | no | no |
+| high | 2 | 96×160 | 48 | 1800 | halo sprites + housings, 3 rock octaves | yes (MSAA) |
+| medium | 1.5 | 64×120 | 36 | 900 | halo sprites at half strength + housings, 2 octaves | yes |
+| low | 1 | 40×80 | 24 | 300 | none (soft grid glow only), 1 octave | no |
 
 Software renderers (SwiftShader, llvmpipe, softpipe, Microsoft Basic Render, Mesa offscreen, or a context that needs
 `failIfMajorPerformanceCaveat: false`) → no 3D at all, the poster stays (`?quality=` still forces the tunnel on); Intel/AMD integrated, Mali, Adreno, PowerVR → at most medium; touch devices → at most medium.
-drei `<PerformanceMonitor>` lowers DPR on decline and switches bloom off.
+drei `<PerformanceMonitor>` lowers DPR on decline and switches the halo sprites off.
 
 **Render loop:** `frameloop="demand"` by default. The loop runs continuously only while the hero is on screen, the tab is
-visible and (motion is allowed OR audio is playing). Otherwise one frame is rendered and the GPU idles.
+visible and (motion is allowed OR audio is playing). On medium/low tiers without audio it runs at 30 fps on demand.
+Otherwise one frame is rendered and the GPU idles; scroll, the intro and easing request frames only while they move.
 
 **Reduced motion:** respected by default (`prefers-reduced-motion`), with a "Turn on full motion" toggle remembered in
 `localStorage` (`?motion=full|reduced` overrides). Reduced = no forward flight, no camera sway or roll, no sparks drift;
@@ -95,7 +115,13 @@ poster, and the canvas fades in (opacity only) after the first frame.
 **Fonts** (Google Fonts, OFL, via `next/font/google`): **Unbounded** (display, 500–900, wide geometric — the poster
 voice) + **Manrope** (body, 400–700). Mono feel for times via Manrope tabular numerals.
 
-**Type scale:** 0.875 / 1 / 1.125 / 1.375 / 1.75 / 2.5 / clamp(3rem, 12vw, 9.5rem) rem.
+**Type scale:** 0.875 / 1 / 1.125 / 1.375 / 1.75 rem, display `clamp(2.5rem, 7vw, 5.5rem)` / 0.92 for every H2, mega
+`clamp(3rem, 15vw, 10.5rem)` / 0.86 / -0.035em for the H1. Each section eyebrow carries an index ("01"–"07").
+
+**2D motion:** echo trail (two outlined H1 copies slide out once), intro lift (eyebrow, lede, buttons, transform only,
+never from opacity 0), split-word H2 reveals, scroll progress bar (CSS scroll timeline with a JS fallback), section dots
+(lg+), magnetic buttons and a dot + ring cursor (fine pointers, motion allowed; the native cursor always stays).
+Acid is the only UI accent; coral and cyan are content colours (3D, stage coding, type wall).
 
 **Spacing scale** (4-based): 4, 8, 12, 16, 24, 32, 48, 64, 96, 128 px — Tailwind's default 0.25rem scale; section padding
 `py-24 md:py-32`, gutters `px-4 sm:px-6 lg:px-10`.
@@ -133,6 +159,9 @@ H2: "Lineup" — sub: "Announced in full. Set times land in July."
   Cascade, Pilar Montes, Echo Chamber Orchestra, Slow Bloom, Kite Theory, Morning Static, Dune Choir, Ottoline,
   Field Notes, Quiet Riot Club, Ember Lane, Yuki Sorrel, Coastline, Halo Rider
 
+### Hero meta rail (lg+)
+"N 61°12′ / Halvard Quarry" · "124 BPM" · "62 acts · 4 stages" · "Signal · live / idle" (12-bar meter)
+
 ### Stages
 H2: "Four stages, one rock"
 1. **The Bowl** (acid) — "The quarry floor. A 360° rig pointed straight up the walls, so the echo becomes part of the mix.
@@ -143,8 +172,16 @@ H2: "Four stages, one rock"
    ribs. Open 22:00 till sunrise."
 4. **Moss Room** (haze) — "A quiet tent in the pines. Ambient, listening sessions, sound baths and the best coffee on site."
 
+### Past editions
+Eyebrow "Past editions" — H2: "How it got this loud"
+- 2019 — "140 people, one borrowed rig, one very loud night."
+- 2021 — "The Shaft opens. Someone cries during the sunrise set."
+- 2024 — "Rewilding fund plants its 10,000th pine."
+- 2026 — "9,000 tickets, gone in 41 minutes."
+- Small print: "Concept project — fictional history."
+
 ### Tickets
-H2: "Tickets" — sub: "Prices include booking fees. Every ticket funds the quarry's rewilding fund."
+Eyebrow: "Three ways in" — H2: "Tickets" — sub: "Prices include booking fees. Every ticket funds the quarry's rewilding fund."
 1. **Weekend** — €189 — "All three nights, all four stages." — includes: Fri–Sun entry · Free shuttle from Halvard
    station · Refillable cup
 2. **Weekend + Camping** — €239 — badge "Most picked" — "Wake up in the pines." — includes: Everything in Weekend ·
@@ -176,6 +213,10 @@ H2: "Questions"
 6. "Is the tunnel on this page really listening?" — "Only if you ask it to. The demo set is generated in your browser,
    and the microphone feed is analysed on your device and never recorded or sent anywhere."
 
+### Final CTA
+- H2: "See you in the quarry" — sub: "21—23 August 2027 · Halvard Quarry"
+- Buttons: "Get tickets" (→ #tickets) · "Play the demo set" (starts the set, then back to the tunnel)
+
 ### Footer
 - "Echo Fest · Halvard Quarry · 21—23 August 2027"
 - "Concept project — fictional brand."
@@ -190,7 +231,7 @@ H2: "Questions"
 
 | asset | source | license |
 |---|---|---|
-| Tunnel, gates, sparks | code (three.js geometry + GLSL) | own |
+| Tunnel, gates, housings, halos, portal, sparks, env studio | code (three.js geometry + GLSL) | own |
 | Demo audio set | code (WebAudio oscillators + noise) | own |
 | No-WebGL poster | CSS gradients + inline SVG | own |
 | Favicon (`app/icon.svg`) | hand-written SVG | own |
@@ -203,9 +244,10 @@ Zero external images, models, textures or audio files.
 
 - First-load JS for `/` < 250 KB gzip, excluding the lazy 3D chunk (target ≈ 130–160 KB: Next + React + page).
 - No GSAP/Lenis on this site: reveals use CSS + one IntersectionObserver; native scroll (no smoothing layer at all).
-- Lazy 3D chunk (three + r3f + the drei helper + postprocessing for high tier) loaded with a plain `import()` after
-  window `load` + idle, and never on software renderers; postprocessing is a second lazy import only on the high tier.
+- Lazy 3D chunk (three + r3f + the drei helper) loaded with a plain `import()` after window `load` + idle, and never on
+  software renderers. No post-processing at all (glow = additive halo sprites), so the high tier can use MSAA.
 - LCP element = hero H1 / lede text (server-rendered, no JS reveal, font `display: swap`), never the canvas.
-- GPU: ≤ 1 draw call per gate group (instanced), 3–4 draw calls total + bloom passes on high.
+- GPU: draw calls high ≤ 7 (wall, LED, housing, halos, sparks, portal), medium ≤ 6, low ≤ 4. No extra passes.
 - Per frame: 1 texture upload of 64 bytes, zero allocations.
-- Lighthouse mobile ≥ 85 performance, ≥ 95 accessibility / best practices / SEO.
+- PageSpeed mobile ≥ 95 performance, 100 accessibility / best practices / SEO; LCP < 2.5 s; CLS 0.
+- Structured data: a `WebSite` node (the festival is fictional, so no `MusicEvent`). Security headers in `next.config.ts`.

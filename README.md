@@ -11,7 +11,7 @@ Concept project — fictional brand.
 ## Tech stack
 
 - Next.js 16 (App Router, TypeScript strict, `src/` dir) · React 19
-- three.js 0.186 · @react-three/fiber 9 · @react-three/drei 10 (PerformanceMonitor) · @react-three/postprocessing 3 (bloom, high tier only)
+- three.js 0.186 · @react-three/fiber 9 · @react-three/drei 10 (PerformanceMonitor) — no post-processing: glow comes from additive halo sprites
 - Tailwind CSS 4 (`@theme` tokens) · Web Audio API
 - No GSAP / Lenis on this site: native scroll and one IntersectionObserver keep the first load small.
 
@@ -27,6 +27,17 @@ Exact versions are pinned in `package.json` (see the shared `STACK.md`).
   lime → coral → cyan depth gradient and distance fog.
 - **Bending path.** The tunnel curves away from the camera; the same `bend()` exists in GLSL and JS so the
   48 **instanced light gates** (one draw call) sit exactly inside the walls and pulse with the history row at their depth.
+- **Lit granite.** Analytic normals from the history texture (no faceting on any tier), value-noise rock with panel
+  seams, a stage light travelling down the tunnel (half-Lambert + Blinn-Phong), a fresnel rim, a wet glossy floor band
+  and gate light spilling onto the rock. ACES tone mapping, so HDR cores roll off to white.
+- **Fixtures, not lines.** Each gate is a smooth LED tube with an HDR core, an aluminium channel behind it
+  (`MeshStandardMaterial` lit by a one-time PMREM of a tiny code-made studio — no HDRI) and an additive halo sprite.
+  All three share one instance-matrix buffer.
+- **The quarry exit.** A soft additive portal at the far end gives the eye a vanishing point.
+- **The drop (scroll moment).** The hero is a sticky scroll track: the flight speeds up x5 while the camera dollies in
+  and the fov widens (dolly zoom), a white shockwave races down the tunnel, every gate flashes, the camera rolls, then
+  the walls open and the portal grows into the glow that becomes the About section. With the demo set playing, the
+  music drops too (riser cut + doubled kick on the next bar).
 - **Sparks** are a `Points` field animated entirely in the vertex shader (no CPU work per particle).
 - **Audio.** A 124 BPM generative set — kick, clap, hats, resonant saw bass, detuned pad and an arp through a feedback
   delay — scheduled with a look-ahead clock. The microphone feeds only the analyser, never the speakers.
@@ -34,7 +45,7 @@ Exact versions are pinned in `package.json` (see the shared `STACK.md`).
   Quality tier chosen before the canvas exists (GPU name via `WEBGL_debug_renderer_info` on a throwaway context, touch,
   cores; `?quality=low|medium|high` overrides); software renderers (SwiftShader, llvmpipe, …) get the poster and
   never download three.js, `frameloop="demand"` with the loop running only while the hero is
-  visible and something animates, adaptive DPR through drei `PerformanceMonitor`, shaders pre-compiled with
+  visible and something animates (30 fps on medium/low tiers unless audio plays), adaptive DPR through drei `PerformanceMonitor`, shaders pre-compiled with
   `gl.compileAsync` behind a poster, zero allocations per frame, no `backdrop-filter` over the canvas.
 - **Motion.** `prefers-reduced-motion` is respected by default (still frame, no flight or camera sway) with a
   "Turn on full motion" toggle remembered in `localStorage`; `?motion=full|reduced` overrides. Audio still makes the
@@ -47,6 +58,7 @@ Exact versions are pinned in `package.json` (see the shared `STACK.md`).
 npm install
 npm run dev     # local development
 npm run build   # production build
+npm run build:pages   # static GitHub Pages mirror in out/ (served from /echo-fest-3d)
 npm run lint
 ```
 
@@ -57,9 +69,9 @@ If the build runs out of memory on Windows: `set NODE_OPTIONS=--max-old-space-si
 
 ```
 src/app/            layout, page, 404, OG/Twitter image (site screenshot), favicon, robots, sitemap, global styles (design tokens)
-src/components/     page UI (audio controls, lineup tabs, motion toggle, poster, reveal)
-src/components/three/  Tunnel (Canvas), engine (scene + per-frame update), shaders, bloom effects
-src/lib/            audio engine, quality tiers, motion preference, site copy
+src/components/     page UI (audio controls, lineup tabs, motion toggle, poster, reveal, scroll chrome, pointer fx)
+src/components/three/  Tunnel (Canvas), engine (scene + per-frame update + the drop), shaders
+src/lib/            audio engine, quality tiers, motion preference, shared scroll listener, site copy
 SPEC.md             design spec: concept, sections, design system, copy, budgets
 ```
 

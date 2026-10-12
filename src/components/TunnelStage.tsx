@@ -69,7 +69,14 @@ export default function TunnelStage() {
       <Poster />
       {loaded && Tunnel && !lost && (
         <div className={`absolute inset-0 transition-opacity duration-700 ${ready ? "opacity-100" : "opacity-0"}`}>
-          <Tunnel tier={loaded.tier} reduced={reduced} running={running} onReady={onReady} onLost={onLost} />
+          <Tunnel
+            tier={loaded.tier}
+            reduced={reduced}
+            running={running}
+            audio={listening}
+            onReady={onReady}
+            onLost={onLost}
+          />
         </div>
       )}
     </div>

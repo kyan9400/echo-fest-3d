@@ -15,6 +15,10 @@
 
   --text-mega: clamp(3rem, 15vw, 10.5rem);
   --text-mega--line-height: 0.86;
+  --text-mega--letter-spacing: -0.035em;
+  /* one display size for every section heading */
+  --text-display: clamp(2.5rem, 7vw, 5.5rem);
+  --text-display--line-height: 0.92;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -43,7 +47,6 @@
     font-family: var(--font-sans);
     line-height: 1.6;
     overflow-x: hidden;
-    text-rendering: optimizeLegibility;
   }
 
   ::selection {
@@ -63,6 +66,7 @@
     font-family: var(--font-display);
     letter-spacing: -0.02em;
     text-wrap: balance;
+    text-rendering: optimizeLegibility;
   }
 
   section[id] {
@@ -84,6 +88,7 @@
     line-height: 1.1;
     transition:
       transform 0.25s var(--ease-out-expo),
+      translate 0.45s var(--ease-out-expo),
       background-color 0.2s,
       color 0.2s;
     touch-action: manipulation;
@@ -237,4 +242,322 @@ html.reduce-motion .btn {
 }
 html.reduce-motion .menu-panel {
   transition: none;
+}
+
+/* ================= Upgrade: the drop, motion chrome, editorial details ================= */
+
+/* Hero scroll track: tall only when motion is allowed (the sticky stage inside stays 100svh, so the
+   first viewport never changes). */
+@media (prefers-reduced-motion: no-preference) {
+  .drop-track {
+    height: 220svh;
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (max-width: 767px) {
+  .drop-track {
+    height: 170svh;
+  }
+}
+/* the visitor switched full motion on although the OS asks for less */
+html.full-motion .drop-track {
+  height: 220svh;
+}
+@media (max-width: 767px) {
+  html.full-motion .drop-track {
+    height: 170svh;
+  }
+}
+html.reduce-motion .drop-track {
+  height: auto;
+}
+
+/* hero copy lifts and fades during the build-up (0.15 -> 0.65); --drop is 0 on first paint */
+.drop-track {
+  --drop-copy: clamp(0, (var(--drop, 0) - 0.15) * 2, 1);
+}
+html:not(.reduce-motion) .hero-copy {
+  transform: translate3d(0, calc(var(--drop-copy) * -8vh), 0);
+  opacity: calc(1 - var(--drop-copy));
+}
+/* never leave a focused control invisible: keyboard focus brings the copy back */
+html:not(.reduce-motion) .hero-copy:focus-within {
+  transform: none;
+  opacity: 1;
+}
+
+/* the portal glow hands over to About */
+.about-glow {
+  background: radial-gradient(ellipse 70% 45% at 50% 0%, rgb(255 92 134 / 0.16), rgb(11 6 20 / 0) 70%);
+}
+
+/* Echo trail: outlined copies behind the H1; transform-only slide, placed at once with reduced motion */
+.echo-copy {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  pointer-events: none;
+  user-select: none;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.echo-1 {
+  -webkit-text-stroke: 1px var(--color-coral);
+  opacity: 0.35;
+  transform: translate(0.06em, -0.06em);
+}
+.echo-2 {
+  -webkit-text-stroke: 1px var(--color-cyan);
+  opacity: 0.18;
+  transform: translate(0.12em, -0.12em);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .echo-1 {
+    animation: echo-in 0.9s var(--ease-out-expo) 0.3s both;
+  }
+  .echo-2 {
+    animation: echo-in 0.9s var(--ease-out-expo) 0.42s both;
+  }
+  /* intro: eyebrow, lede and buttons start visible and lift 12px into place */
+  .intro-lift {
+    animation: intro-lift 0.8s var(--ease-out-expo) both;
+  }
+  .intro-2 {
+    animation-delay: 0.08s;
+  }
+  .intro-3 {
+    animation-delay: 0.16s;
+  }
+}
+html.reduce-motion .echo-copy,
+html.reduce-motion .intro-lift {
+  animation: none;
+}
+/* "from" only: each copy slides from the H1 to its own offset */
+@keyframes echo-in {
+  from {
+    transform: none;
+  }
+}
+@keyframes intro-lift {
+  from {
+    transform: translateY(12px);
+  }
+}
+
+/* Section index ("01") next to each eyebrow */
+.section-index {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-haze);
+}
+
+/* Split-word heading reveal (below the fold only) */
+.split-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+.split-word {
+  display: inline-block;
+}
+.reveal-ready [data-reveal="split"] {
+  opacity: 1;
+  transform: none;
+}
+.reveal-ready [data-reveal="split"] .split-word {
+  transform: translateY(105%);
+  transition: transform 0.9s var(--ease-out-expo);
+  transition-delay: calc(var(--i, 0) * 60ms);
+}
+.reveal-ready [data-reveal="split"].is-in .split-word {
+  transform: none;
+}
+html.reduce-motion .split-word {
+  transform: none !important;
+  transition: none !important;
+}
+
+/* Scroll progress bar */
+.progress-bar {
+  transform-origin: 0 50%;
+  transform: scaleX(var(--progress, 0));
+}
+@supports (animation-timeline: scroll()) {
+  .progress-bar {
+    animation: progress linear both;
+    animation-timeline: scroll(root);
+  }
+}
+@keyframes progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Section dots: 44px hit area, the active one grows and turns acid, label on hover/focus */
+.dot-mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-haze);
+  opacity: 0.6;
+  transition:
+    transform 0.3s var(--ease-out-expo),
+    background-color 0.2s,
+    opacity 0.2s;
+}
+.dot[aria-current] .dot-mark {
+  background: var(--color-acid);
+  opacity: 1;
+  transform: scale(1.6);
+}
+.dot-label {
+  position: absolute;
+  right: 100%;
+  white-space: nowrap;
+  border-radius: 999px;
+  background: var(--color-night);
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-ink);
+  opacity: 0;
+  transform: translateX(6px);
+  pointer-events: none;
+  transition:
+    opacity 0.2s,
+    transform 0.3s var(--ease-out-expo);
+}
+.dot:hover .dot-label,
+.dot:focus-visible .dot-label {
+  opacity: 1;
+  transform: none;
+}
+
+/* Desktop cursor: never replaces the native one; hidden until PointerFx sets data-cursor */
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  pointer-events: none;
+  border-radius: 999px;
+  opacity: 0;
+}
+.cursor-dot {
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  background: var(--color-acid);
+  transition: opacity 0.2s;
+}
+.cursor-ring {
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  border: 1.5px solid var(--color-acid);
+  mix-blend-mode: difference;
+  transition:
+    opacity 0.2s,
+    scale 0.3s var(--ease-out-expo);
+}
+.cursor-ring::after {
+  content: "drag the sound";
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 6px);
+  translate: -50% 0;
+  white-space: nowrap;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+html[data-cursor="on"] .cursor-dot,
+html[data-cursor="on"] .cursor-ring,
+html[data-cursor="hover"] .cursor-ring,
+html[data-cursor="stage"] .cursor-dot,
+html[data-cursor="stage"] .cursor-ring {
+  opacity: 1;
+}
+/* over links and buttons the native cursor leads; the ring just widens around it */
+html[data-cursor="hover"] .cursor-ring {
+  scale: 1.5;
+}
+/* over the live canvas: no blend mode, a small ring with a hint */
+html[data-cursor="stage"] .cursor-ring {
+  mix-blend-mode: normal;
+  scale: 0.7;
+}
+html[data-cursor="stage"] .cursor-ring::after {
+  opacity: 0.85;
+}
+html.reduce-motion .cursor-dot,
+html.reduce-motion .cursor-ring {
+  display: none;
+}
+
+/* Stages: editorial rows; the accent bar grows and the stroked number fills on hover */
+.stage-num {
+  -webkit-text-stroke: 1.5px currentColor;
+  -webkit-text-fill-color: transparent;
+  transition: -webkit-text-fill-color 0.3s;
+}
+.stage-bar {
+  transform-origin: 0 50%;
+  transform: scaleX(0.06);
+  transition: transform 0.7s var(--ease-out-expo);
+}
+.stage-row:hover .stage-bar,
+.stage-row:focus-within .stage-bar {
+  transform: none;
+}
+.stage-row:hover .stage-num,
+.stage-row:focus-within .stage-num {
+  -webkit-text-fill-color: currentColor;
+}
+html.reduce-motion .stage-bar,
+html.reduce-motion .stage-num {
+  transition: none;
+}
+
+/* Editions: the timeline hairline draws on reveal */
+.edition-line {
+  transform-origin: 0 50%;
+}
+.reveal-ready [data-reveal] .edition-line {
+  transform: scaleX(0);
+  transition: transform 1.2s var(--ease-out-expo) 0.15s;
+}
+.reveal-ready [data-reveal].is-in .edition-line {
+  transform: none;
+}
+html.reduce-motion .edition-line {
+  transform: none !important;
+  transition: none !important;
+}
+
+/* Signal meter in the hero rail */
+.meter {
+  display: inline-flex;
+  height: 14px;
+  align-items: flex-end;
+  gap: 2px;
+}
+.meter span {
+  width: 3px;
+  height: 100%;
+  background: var(--color-acid);
+  transform-origin: bottom;
+  transform: scaleY(0.12);
 }

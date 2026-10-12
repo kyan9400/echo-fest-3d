@@ -50,6 +50,7 @@ let nextTime = 0;
 let step = 0;
 let micStream: MediaStream | null = null;
 let micSource: MediaStreamAudioSourceNode | null = null;
+let dropBar = -1; // first step of the bar that gets the doubled kick
 
 function ensureContext(): AudioContext {
   if (ctx) return ctx;
@@ -204,10 +205,11 @@ function scheduleStep(s: number, t: number) {
   const bar = Math.floor(s / 16) % 4;
   const inBar = s % 16;
   const phrase = Math.floor(s / 64); // 4-bar phrases build up
-  const breakdown = phrase % 4 === 3 && bar >= 2; // short breakdown every 16 bars
+  const dropping = dropBar >= 0 && s >= dropBar && s < dropBar + 16;
+  const breakdown = !dropping && phrase % 4 === 3 && bar >= 2; // short breakdown every 16 bars
 
   if (inBar === 0) pad(t, CHORDS[bar]);
-  if (!breakdown && inBar % 4 === 0) kick(t);
+  if (dropping ? inBar % 2 === 0 : !breakdown && inBar % 4 === 0) kick(t); // the drop doubles the kick
   if (!breakdown && (inBar === 4 || inBar === 12)) noiseHit(t, "bandpass", 1500, 0.8, 0.5, 0.18, true);
   if (inBar % 4 === 2) noiseHit(t, "highpass", 8000, 0.7, 0.22, 0.05);
   if (phrase > 0 && inBar % 2 === 1) noiseHit(t, "highpass", 10000, 0.7, 0.07, 0.03);
@@ -234,6 +236,7 @@ export async function startDemo() {
   if (c.state === "suspended") await c.resume();
   if (timer !== null) return;
   step = 0;
+  dropBar = -1;
   nextTime = c.currentTime + 0.08;
   master!.gain.cancelScheduledValues(c.currentTime);
   master!.gain.setValueAtTime(master!.gain.value, c.currentTime);
@@ -241,6 +244,32 @@ export async function startDemo() {
   tick();
   timer = window.setInterval(tick, 25);
   setState({ playing: true });
+}
+
+/** The scroll drop: a filtered-noise riser that cuts on the next bar, then one bar of doubled kicks. */
+export function triggerDrop() {
+  if (!ctx || timer === null || !noise) return;
+  let barStep = Math.ceil(step / 16) * 16;
+  if (barStep - step < 4) barStep += 16; // give the riser at least a beat
+  const now = ctx.currentTime;
+  const cut = nextTime + (barStep - step) * STEP;
+  dropBar = barStep;
+
+  const src = ctx.createBufferSource();
+  src.buffer = noise;
+  src.loop = true;
+  const f = ctx.createBiquadFilter();
+  f.type = "bandpass";
+  f.Q.value = 3;
+  f.frequency.setValueAtTime(400, now);
+  f.frequency.exponentialRampToValueAtTime(7000, cut);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.exponentialRampToValueAtTime(0.35, cut - 0.01);
+  g.gain.setValueAtTime(0.0001, cut); // hard cut on the bar
+  src.connect(f).connect(g).connect(musicBus!);
+  src.start(now);
+  src.stop(cut + 0.02);
 }
 
 export function stopDemo() {

@@ -34,7 +34,10 @@ function systemReduced(): boolean {
 function snapshot(): boolean {
   const choice = readChoice();
   const reduced = choice === "full" ? false : choice === "reduced" ? true : systemReduced();
-  document.documentElement.classList.toggle("reduce-motion", reduced);
+  const root = document.documentElement;
+  root.classList.toggle("reduce-motion", reduced);
+  // explicit "full motion" on an OS that asks for less: CSS uses this to bring the drop track back
+  root.classList.toggle("full-motion", choice === "full");
   return reduced;
 }
 
