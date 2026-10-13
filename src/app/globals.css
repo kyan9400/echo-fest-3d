@@ -623,3 +623,16 @@ html.reduce-motion .edition-line {
 html.full-motion .chapter-lights::before {
   animation: chapter-sweep 7s ease-in-out infinite alternate;
 }
+
+/* poster: landscape frames the stage right of the headline, portrait puts the tunnel mouth above it */
+.poster-tall {
+  display: none;
+}
+@media (max-aspect-ratio: 1/1) {
+  .poster-wide {
+    display: none;
+  }
+  .poster-tall {
+    display: block;
+  }
+}

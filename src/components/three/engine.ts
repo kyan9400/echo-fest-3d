@@ -262,13 +262,14 @@ export class EchoEngine {
     const tunnelGeo = new THREE.CylinderGeometry(
       TUNNEL_RADIUS,
       TUNNEL_RADIUS,
-      TUNNEL_LENGTH + 8,
+      TUNNEL_LENGTH + 2 + WALL_Z,
       settings.radial,
       settings.length,
       true,
     );
     tunnelGeo.rotateX(-Math.PI / 2); // axis along -z, away from the camera
-    tunnelGeo.translate(0, 0, -(TUNNEL_LENGTH + 8) / 2 + 6);
+    // the front edge sits exactly in the LED wall plane, so there is no gap between the mouth and the rock
+    tunnelGeo.translate(0, 0, -(TUNNEL_LENGTH + 2 + WALL_Z) / 2 + WALL_Z);
     const tunnelMat = new THREE.ShaderMaterial({
       uniforms: this.uniforms,
       vertexShader: tunnelVertex,

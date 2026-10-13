@@ -3,6 +3,8 @@
   (bendX / bendY in engine.ts) so the light gates follow the walls exactly.
 */
 
+import { WALL_Z } from "./stageShaders";
+
 export const TUNNEL_LENGTH = 110;
 export const TUNNEL_RADIUS = 4;
 export const HISTORY = 64; // rows of spectrum history = how far an echo travels down the tunnel
@@ -50,7 +52,9 @@ export const tunnelVertex = /* glsl */ `
     // the newest spectrum row is at the camera; older rows lie deeper in the tunnel
     float row = uHead - d * ${((HISTORY - 1) / HISTORY).toFixed(4)};
     amp = texture2D(uHistory, vec2(0.02 + side * 0.9, row)).r;
-    float r = ${R} * (1.0 - amp * 0.3 * (0.35 + 0.65 * (1.0 - d))) * (1.0 + uOpen * 2.5);
+    // the throat: no inward bulge right behind the LED wall, so the rock always fills the mouth (r >= MOUTH_R)
+    float throat = smoothstep(${WALL_Z.toFixed(1)}, ${(WALL_Z - 7).toFixed(1)}, z);
+    float r = ${R} * (1.0 - amp * throat * 0.3 * (0.35 + 0.65 * (1.0 - d))) * (1.0 + uOpen * 2.5);
     return vec3(n * r + bend(z), z);
   }
 
@@ -157,9 +161,11 @@ export const tunnelFragment = /* glsl */ `
     vec2 g = vec2(vSide * 18.0, (vZ + uTravel) * 0.32);
     float mask = introMask(vDepth);
 
-    vec3 hue = mix(uAcid, uCoral, smoothstep(0.04, 0.42, vDepth));
-    hue = mix(hue, uCyan, smoothstep(0.45, 0.85, vDepth));
-    hue = mix(hue, uCyan, smoothstep(0.55, 1.0, vSide) * 0.5);
+    // the stage's palette: coral at the mouth (like the LED wall's rim), cooling to cyan in the depth,
+    // a cyan ceiling tint; acid stays an accent (beat flashes, gates), not a wash
+    vec3 hue = mix(uCoral, mix(uCoral, uPlum * 3.0, 0.45), smoothstep(0.05, 0.35, vDepth));
+    hue = mix(hue, uCyan, smoothstep(0.35, 0.8, vDepth));
+    hue = mix(hue, uCyan, smoothstep(0.55, 1.0, vSide) * 0.4);
 
     // granite between the grid lines: plum -> dusk with sparse lighter flecks
     float rock = fbm(g * vec2(0.9, 1.1));
@@ -186,15 +192,15 @@ export const tunnelFragment = /* glsl */ `
 
     vec3 col = base * (0.3 + vAmp * 1.2 + wrap * wrap * att * lightCol);
     col += lightCol * spec * att;
-    col += hue * fres * (0.18 + vAmp * 0.6);
+    col += hue * fres * (0.12 + vAmp * 0.35);
 
     // neon grid with a soft wide glow on every tier
     float rings = gridLine(g.y, 0.02);
     float ribs = gridLine(g.x, 0.015);
     float grid = max(rings, ribs * 0.55);
     float glow = (exp(-cellDist(g.y) * 12.0) + exp(-cellDist(g.x) * 12.0) * 0.55) * 0.25;
-    col += hue * (grid + glow) * (0.55 + vAmp * 2.6) * mask;
-    col += hue * vAmp * vAmp * 0.9;
+    col += hue * (grid + glow) * (0.5 + vAmp * 1.8) * mask;
+    col += hue * vAmp * vAmp * 0.35;
     col += uAcid * uBass * grid * 0.6 * (1.0 - vDepth) * mask;
 
     // gate light spill: nearest gate plane, its colour picked like the JS (i % 3)
@@ -208,7 +214,8 @@ export const tunnelFragment = /* glsl */ `
     float spill = exp(-dzz * dzz * 1.6) * (0.35 + vAmp);
     // wet floor: a stretched, mirrored reflection of the same gate
     spill += wet * exp(-(dzz + 0.9) * (dzz + 0.9) * 0.5) * 0.6;
-    col += gateHue * spill * uGateGain * near * mask;
+    // the spill picks up the rock's own hue, so the walls read as one lit space rather than rainbow bands
+    col += mix(gateHue, hue, 0.55) * spill * 0.6 * uGateGain * near * mask;
 
     // the drop: a white shockwave racing down the tunnel
     float sz = (vZ + uShock * ${L}) * 0.45;
@@ -230,6 +237,7 @@ const gateCommon = /* glsl */ `
   varying vec3 vCol;
   varying float vFog;
   varying float vMask;
+  varying float vNear;
   void gateVaryings(vec4 world, vec4 mv) {
     #ifdef USE_INSTANCING_COLOR
       vCol = instanceColor;
@@ -238,6 +246,8 @@ const gateCommon = /* glsl */ `
     #endif
     vMask = introMask(clamp(-world.z / ${L}, 0.0, 1.0));
     vFog = smoothstep(22.0, ${(TUNNEL_LENGTH * 0.92).toFixed(1)}, -mv.z);
+    // halos right next to the camera would wash the whole frame in one colour
+    vNear = smoothstep(2.0, 16.0, -mv.z);
   }
 `;
 
@@ -295,10 +305,11 @@ export const haloFragment = /* glsl */ `
   varying float vFog;
   varying float vMask;
   varying float vR;
+  varying float vNear;
   void main() {
     float d = (vR - uHaloRadius) / 0.42;
     float a = exp(-d * d * 2.2);
-    gl_FragColor = vec4(vCol * a * uHaloGain * vMask * (1.0 - vFog), 1.0);
+    gl_FragColor = vec4(vCol * a * uHaloGain * vMask * vNear * (1.0 - vFog), 1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
   }

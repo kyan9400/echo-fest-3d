@@ -80,7 +80,10 @@ Tone of voice: warm, nocturnal, a bit cheeky, short sentences. No hype clichés 
   confetti, a crowd of 800-2600 instanced silhouettes rim-lit by the stage that jump on the beat (30% with arms up,
   many holding phone lights, some firing camera flashes), terraced quarry walls with a jagged rim, sky glow and stars.
   A fake 124 bpm beat clock drives all of it with no microphone; live audio adds its own kicks. Desktop frames the
-  stage to the right of the headline, phones put the tunnel mouth above it. Scroll: p 0.08-0.45 the camera flies over
+  stage to the right of the headline, phones put the tunnel mouth above it. The tunnel's front edge sits exactly in the
+  LED wall plane and its first 7 units do not bulge inwards (the "throat"), so the rock always fills the mouth during
+  the fly-through. Inside, the tunnel uses the stage palette (coral at the mouth cooling to cyan in the depth, acid as an
+  accent; gate spill takes on the rock's hue; halos fade out within 2-16 units of the camera). Scroll: p 0.08-0.45 the camera flies over
   the crowd and through the mouth into the tunnel (fov eases from the hero fov to 72), then the existing build-up,
   drop and portal run over p 0.45-1. Reduced motion shows a still frame of the stage. Chapters below the hero (lineup,
   stages, tickets) carry CSS rig lights (conic-gradient beams + an LED strip) in their own colour pair. All stage
@@ -114,7 +117,10 @@ Otherwise one frame is rendered and the GPU idles; scroll, the intro and easing 
 the tunnel renders as a still frame. If the visitor starts audio, the wall and gates still respond to the sound
 (user-initiated), but the camera stays put.
 
-**No WebGL / software renderer / context lost:** a designed CSS/SVG poster (concentric neon rings, vanishing point) replaces the canvas; all
+**No WebGL / software renderer / context lost:** a designed inline-SVG poster of the main stage (LED wall with the glowing
+tunnel mouth and its three rings, echo wavefronts, truss and moving-head beams, laser fans, rim-lit crowd with phone lights;
+the scene is drawn once and shown through a landscape viewBox, stage right of the headline, or a portrait one, mouth above
+it, switched at aspect 1:1; ~41 KB markup, ~10 KB gzip; the faint CTA copy is `lite`, without the crowd) replaces the canvas; all
 content and buttons stay usable (audio still plays).
 
 **Warm-up:** the 3D chunk is imported only after window `load` + `requestIdleCallback` (2.5 s timeout). Geometry is built

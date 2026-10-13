@@ -393,9 +393,9 @@ export default function Home() {
           aria-labelledby="cta-title"
           className="relative isolate overflow-hidden border-t border-plum bg-dusk py-28 md:py-40"
         >
-          {/* the static poster rings, faint: SVG, so no second canvas */}
+          {/* the static stage poster, faint: SVG, so no second canvas */}
           <div className="pointer-events-none absolute inset-0 -z-10 opacity-25" aria-hidden="true">
-            <Poster id="cta-poster" />
+            <Poster id="cta-poster" lite />
           </div>
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
             <SplitTitle id="cta-title" text="See you in the quarry" className="max-w-4xl" />
