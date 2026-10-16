@@ -34,6 +34,11 @@ Exact versions are pinned in `package.json` (see the shared `STACK.md`).
   (`MeshStandardMaterial` lit by a one-time PMREM of a tiny code-made studio — no HDRI) and an additive halo sprite.
   All three share one instance-matrix buffer.
 - **The quarry exit.** A soft additive portal at the far end gives the eye a vanishing point.
+- **Real quarry walls.** The pit around the stage is built from photogrammetry scans of real cliffs (Poly Haven, CC0:
+  Namaqualand Cliff 02 behind the stage, Rock Face 01 flanking it), stood upright, simplified and meshopt-compressed
+  with 1k WebP textures (~1.1 MB together, decoded locally). A custom shader lights the real rock only with the show:
+  the LED wall wash, the up-beam line, laser streaks sweeping across the strata on the beat and a plum night fill.
+  They load with the 3D chunk and the reveal waits for them; if they fail, the procedural quarry backdrop remains.
 - **The drop (scroll moment).** The hero is a sticky scroll track: the flight speeds up x5 while the camera dollies in
   and the fov widens (dolly zoom), a white shockwave races down the tunnel, every gate flashes, the camera rolls, then
   the walls open and the portal grows into the glow that becomes the About section. With the demo set playing, the
@@ -47,8 +52,8 @@ Exact versions are pinned in `package.json` (see the shared `STACK.md`).
   never download three.js, `frameloop="demand"` with the loop running only while the hero is
   visible and something animates (30 fps on medium/low tiers unless audio plays), adaptive DPR through drei `PerformanceMonitor`, shaders pre-compiled with
   `gl.compileAsync` behind a poster, zero allocations per frame, no `backdrop-filter` over the canvas.
-- **Motion.** `prefers-reduced-motion` is respected by default (still frame, no flight or camera sway) with a
-  "Turn on full motion" toggle remembered in `localStorage`; `?motion=full|reduced` overrides. Audio still makes the
+- **Motion.** Full motion by default on a first visit. The "Reduce motion" toggle switches to a still frame (no flight
+  or camera sway) and is remembered in `localStorage` for later visits; `?motion=full|reduced` overrides. Audio still makes the
   walls respond, the camera stays put.
 - **No WebGL / software renderer / context lost** → a designed SVG poster of the tunnel; the page and the audio stay fully usable.
 
@@ -77,7 +82,7 @@ SPEC.md             design spec: concept, sections, design system, copy, budgets
 
 ## Credits
 
-Fonts: Unbounded and Manrope (SIL OFL 1.1). Libraries: see [CREDITS.md](CREDITS.md). All 3D, imagery and audio are
-made in code for this project.
+Fonts: Unbounded and Manrope (SIL OFL 1.1). Libraries and the two CC0 cliff scans from Poly Haven: see
+[CREDITS.md](CREDITS.md). Everything else (3D, imagery, audio) is made in code for this project.
 
 © 2026 Alhassan Alfarran — see [LICENSE](LICENSE).

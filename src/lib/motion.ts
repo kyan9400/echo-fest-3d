@@ -2,8 +2,8 @@
 
 /*
   Motion preference.
-  Respects prefers-reduced-motion by default, but the visitor can switch full motion back on
-  (many people turn animations off for speed, not comfort). The choice is remembered in localStorage;
+  Full motion by default on a first visit (whatever the OS reports); the "Reduce motion" toggle switches
+  to a still version and back. The choice is remembered in localStorage and respected on later visits;
   ?motion=full|reduced in the URL overrides everything.
 */
 
@@ -27,27 +27,19 @@ function readChoice(): Choice {
   }
 }
 
-function systemReduced(): boolean {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
 function snapshot(): boolean {
   const choice = readChoice();
-  const reduced = choice === "full" ? false : choice === "reduced" ? true : systemReduced();
+  const reduced = choice === "reduced";
   const root = document.documentElement;
   root.classList.toggle("reduce-motion", reduced);
-  // explicit "full motion" on an OS that asks for less: CSS uses this to bring the drop track back
-  root.classList.toggle("full-motion", choice === "full");
+  root.classList.toggle("full-motion", !reduced);
   return reduced;
 }
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-  mq.addEventListener("change", listener);
   return () => {
     listeners.delete(listener);
-    mq.removeEventListener("change", listener);
   };
 }
 

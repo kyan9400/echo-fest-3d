@@ -8,6 +8,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { TierSettings } from "@/lib/quality";
+import type { QuarryAssets, RockAsset } from "./quarry";
 import {
   MOUTH_R,
   WALL_Z,
@@ -27,6 +28,8 @@ import {
   rayVertex,
   rigFragment,
   rigVertex,
+  rockFragment,
+  rockVertex,
   skyFragment,
   starFragment,
   starVertex,
@@ -41,6 +44,16 @@ const FLOOR_Y = -6.5;
 const DECK_TOP = -4.2;
 const TRUSS_Y = 15.5;
 const TRUSS_Z = 9.5;
+
+/* Where the scanned walls stand: [model, x, z, yaw, scale]. Both scans face +z with their base at y = 0.
+   The big Namaqualand cliff closes the pit behind the stage; rock faces flank the crowd. */
+const ROCKS: [keyof QuarryAssets, number, number, number, number][] = [
+  ["cliff", 0, -28, 0.0, 5.0],
+  ["face", -35, 1, 0.55, 7.0],
+  ["face", 35, -1, -0.6, 7.2],
+  ["face", -52, 26, 1.35, 6.4],
+  ["face", 54, 24, -1.4, 6.6],
+];
 
 /** Small deterministic PRNG so the crowd looks the same on every visit. */
 function rng(seed: number) {
@@ -101,6 +114,7 @@ export class StageWorld {
   private readonly uniforms: Uniforms;
   private readonly disposables: { dispose: () => void }[] = [];
   private readonly rand = rng(2027);
+  private rockTextures: THREE.Texture[] = [];
 
   constructor(settings: TierSettings, uniforms: Uniforms) {
     this.settings = settings;
@@ -159,6 +173,38 @@ export class StageWorld {
     starGeo.setAttribute("aStar", new THREE.BufferAttribute(stars, 4));
     starGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(n * 3), 3));
     this.add(new THREE.Points(starGeo, this.additive(starVertex, starFragment)), starGeo, -1);
+  }
+
+  /** the scanned cliffs around the pit (shared geometry + one material per scan, a mesh per placement) */
+  addQuarry(q: QuarryAssets) {
+    const mats = new Map<RockAsset, THREE.ShaderMaterial>();
+    for (const [key, x, z, yaw, sc] of ROCKS) {
+      const asset = q[key];
+      let mat = mats.get(asset);
+      if (!mat) {
+        mat = new THREE.ShaderMaterial({
+          uniforms: { ...this.uniforms, uMap: { value: asset.map }, uNormalMap: { value: asset.normalMap } },
+          vertexShader: rockVertex,
+          fragmentShader: rockFragment,
+          side: THREE.DoubleSide,
+        });
+        mats.set(asset, mat);
+        this.disposables.push(mat, asset.geometry, asset.map, asset.normalMap);
+      }
+      const mesh = new THREE.Mesh(asset.geometry, mat);
+      mesh.position.set(x, FLOOR_Y - 0.4, z);
+      mesh.rotation.y = yaw;
+      mesh.scale.setScalar(sc);
+      mesh.matrixAutoUpdate = false;
+      mesh.updateMatrix();
+      this.group.add(mesh);
+    }
+    this.rockTextures = [q.cliff.map, q.cliff.normalMap, q.face.map, q.face.normalMap];
+  }
+
+  /** upload the scan textures before the warm-up compile, so the first revealed frame does not stall */
+  prepare(gl: THREE.WebGLRenderer) {
+    this.rockTextures.forEach((t) => gl.initTexture(t));
   }
 
   /** LED wall with the tunnel mouth, ring frame, deck, rig and speakers */

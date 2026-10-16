@@ -30,11 +30,9 @@
     -webkit-text-size-adjust: 100%;
   }
 
-  /* smooth anchor jumps only when the OS allows motion (this applies before JS runs, too) */
-  @media (prefers-reduced-motion: no-preference) {
-    html {
-      scroll-behavior: smooth;
-    }
+  /* smooth anchor jumps with full motion (the default); the reduced-motion choice turns them off */
+  html {
+    scroll-behavior: smooth;
   }
 
   html.reduce-motion {
@@ -246,24 +244,13 @@ html.reduce-motion .menu-panel {
 
 /* ================= Upgrade: the drop, motion chrome, editorial details ================= */
 
-/* Hero scroll track: tall only when motion is allowed (the sticky stage inside stays 100svh, so the
-   first viewport never changes). */
-@media (prefers-reduced-motion: no-preference) {
-  .drop-track {
-    height: 220svh;
-  }
-}
-@media (prefers-reduced-motion: no-preference) and (max-width: 767px) {
-  .drop-track {
-    height: 170svh;
-  }
-}
-/* the visitor switched full motion on although the OS asks for less */
-html.full-motion .drop-track {
+/* Hero scroll track: tall with full motion, the default (the sticky stage inside stays 100svh, so the
+   first viewport never changes); the visitor's reduced-motion choice folds it away. */
+.drop-track {
   height: 220svh;
 }
 @media (max-width: 767px) {
-  html.full-motion .drop-track {
+  .drop-track {
     height: 170svh;
   }
 }
@@ -310,23 +297,22 @@ html:not(.reduce-motion) .hero-copy:focus-within {
   opacity: 0.18;
   transform: translate(0.12em, -0.12em);
 }
-@media (prefers-reduced-motion: no-preference) {
-  .echo-1 {
-    animation: echo-in 0.9s var(--ease-out-expo) 0.3s both;
-  }
-  .echo-2 {
-    animation: echo-in 0.9s var(--ease-out-expo) 0.42s both;
-  }
-  /* intro: eyebrow, lede and buttons start visible and lift 12px into place */
-  .intro-lift {
-    animation: intro-lift 0.8s var(--ease-out-expo) both;
-  }
-  .intro-2 {
-    animation-delay: 0.08s;
-  }
-  .intro-3 {
-    animation-delay: 0.16s;
-  }
+/* intro animations play with full motion (the default); html.reduce-motion below switches them off */
+.echo-1 {
+  animation: echo-in 0.9s var(--ease-out-expo) 0.3s both;
+}
+.echo-2 {
+  animation: echo-in 0.9s var(--ease-out-expo) 0.42s both;
+}
+/* intro: eyebrow, lede and buttons start visible and lift 12px into place */
+.intro-lift {
+  animation: intro-lift 0.8s var(--ease-out-expo) both;
+}
+.intro-2 {
+  animation-delay: 0.08s;
+}
+.intro-3 {
+  animation-delay: 0.16s;
 }
 html.reduce-motion .echo-copy,
 html.reduce-motion .intro-lift {
@@ -615,12 +601,7 @@ html.reduce-motion .edition-line {
     transform: rotate(2.5deg);
   }
 }
-@media (prefers-reduced-motion: no-preference) {
-  html:not(.reduce-motion) .chapter-lights::before {
-    animation: chapter-sweep 7s ease-in-out infinite alternate;
-  }
-}
-html.full-motion .chapter-lights::before {
+html:not(.reduce-motion) .chapter-lights::before {
   animation: chapter-sweep 7s ease-in-out infinite alternate;
 }
 

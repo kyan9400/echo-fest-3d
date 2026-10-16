@@ -24,6 +24,7 @@ import {
   tunnelFragment,
   tunnelVertex,
 } from "./shaders";
+import { loadQuarry } from "./quarry";
 import { StageWorld, makeNoiseTexture } from "./stage";
 import { WALL_Z } from "./stageShaders";
 
@@ -179,6 +180,8 @@ export class EchoEngine {
 
   /** Builds the engine in short steps, yielding to the main thread between the heavy ones. */
   static async create(settings: TierSettings): Promise<EchoEngine> {
+    // the scanned quarry walls download while the procedural parts are built
+    const quarry = loadQuarry();
     const engine = new EchoEngine(settings);
     await yieldToMain();
     engine.buildTunnel();
@@ -197,6 +200,8 @@ export class EchoEngine {
     stage.buildCrowd();
     await yieldToMain();
     stage.buildLights();
+    const rocks = await quarry;
+    if (rocks) stage.addQuarry(rocks);
     engine.group.add(stage.group);
     return engine;
   }
@@ -382,6 +387,7 @@ export class EchoEngine {
 
   /** One-time PMREM of a tiny code-made "studio" (three coloured ring lights in a dim plum box). */
   prepare(gl: THREE.WebGLRenderer) {
+    this.stage.prepare(gl);
     if (!this.housingMat || this.envTarget) return;
     const scene = new THREE.Scene();
     const owned: { dispose: () => void }[] = [];

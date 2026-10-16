@@ -467,3 +467,82 @@ export const skyFragment = /* glsl */ `
     ${tail}
   }
 `;
+
+/* ---------------- scanned quarry walls (Poly Haven CC0 cliff scans) ----------------
+   Albedo + normal map from the scan; light only from the show: the LED wall wash in front of the stage,
+   the up-beam line on top of the wall, laser streaks sweeping across the rock, a plum night fill. */
+
+export const rockVertex = /* glsl */ `
+  varying vec3 vW;
+  varying vec3 vN;
+  varying vec2 vUv;
+  void main() {
+    vec4 w = modelMatrix * vec4(position, 1.0);
+    vW = w.xyz;
+    vN = normalize(mat3(modelMatrix) * normal);
+    vUv = uv;
+    gl_Position = projectionMatrix * viewMatrix * w;
+  }
+`;
+
+export const rockFragment = /* glsl */ `
+  ${common}
+  uniform vec3 uRayGain;
+  uniform sampler2D uMap;
+  uniform sampler2D uNormalMap;
+  varying vec3 vW;
+  varying vec3 vN;
+  varying vec2 vUv;
+  // tangent frame from screen-space derivatives (the scans carry no tangents)
+  vec3 perturb(vec3 p, vec3 n, vec3 m, vec2 uv) {
+    vec3 q0 = dFdx(p);
+    vec3 q1 = dFdy(p);
+    vec2 st0 = dFdx(uv);
+    vec2 st1 = dFdy(uv);
+    vec3 q1p = cross(q1, n);
+    vec3 q0p = cross(n, q0);
+    vec3 T = q1p * st0.x + q0p * st1.x;
+    vec3 B = q1p * st0.y + q0p * st1.y;
+    float det = max(dot(T, T), dot(B, B));
+    float s = det == 0.0 ? 0.0 : inversesqrt(det);
+    return normalize(T * (m.x * s) + B * (m.y * s) + n * m.z);
+  }
+  void main() {
+    // keep the tunnel bore behind the LED wall clear (it is seen through the mouth)
+    if (vW.z < ${(WALL_Z - 0.5).toFixed(1)} && length(vW.xy) < 6.5) discard;
+    vec3 alb = texture2D(uMap, vUv).rgb;
+    vec3 n = normalize(vN) * (gl_FrontFacing ? 1.0 : -1.0);
+    vec3 N = perturb(vW, n, texture2D(uNormalMap, vUv).xyz * 2.0 - 1.0, vUv);
+
+    // 1. LED wall wash: an area light on the wall face, only for rock in front of it
+    vec3 d1 = vec3(clamp(vW.x, -18.0, 18.0), clamp(vW.y, -4.0, 14.0), ${(WALL_Z + 1.0).toFixed(1)}) - vW;
+    float r1 = length(d1);
+    float front = smoothstep(-1.0, 3.0, vW.z - ${WALL_Z.toFixed(1)});
+    vec3 wash = stageHue(uBeatClock / 16.0) * (0.55 + 0.6 * uBeat);
+    vec3 col = alb * wash * max(dot(N, d1 / r1), 0.0) * 700.0 / (r1 * r1 + 120.0) * front;
+
+    // 2. the up-beam line on top of the wall: lights the walls behind and beside the stage
+    vec3 d2 = vec3(clamp(vW.x, -18.0, 18.0), 14.3, ${(WALL_Z - 0.3).toFixed(1)}) - vW;
+    float r2 = length(d2);
+    vec3 beam = stageHue(floor(uBeatClock / 16.0) * 0.5 + vW.x * 0.015 + 1.0) * uRayGain.x;
+    col += alb * beam * max(dot(N, d2 / r2), 0.0) * 800.0 / (r2 * r2 + 250.0);
+
+    // 3. laser streaks sweeping across the rock from the deck lip
+    float ang = atan(vW.x, vW.z - ${(WALL_Z + 6.8).toFixed(1)});
+    float sweep = fract(ang * 2.2 + vW.y * 0.035 - uBeatClock * 0.125);
+    float streak = exp(-abs(sweep - 0.5) * 70.0) * smoothstep(-5.0, 2.0, vW.y);
+    col += stageHue(floor(uBeatClock / 4.0)) * streak * uRayGain.z * (0.3 + alb * 2.0) * 0.7;
+
+    // 4. night fill: plum bounce and a little sky from above, so the strata read between hits
+    col += alb * (uPlum * 1.6 + vec3(0.03, 0.028, 0.05));
+    // cool moonlight raking across the strata from above left
+    col += alb * vec3(0.16, 0.15, 0.26) * max(dot(N, normalize(vec3(-0.35, 0.75, 0.55))), 0.0);
+
+    // distance haze into the night sky
+    float dist = length(vW - cameraPosition);
+    col = mix(col, uNight, smoothstep(45.0, 150.0, dist) * 0.75);
+    col *= 0.5 + 0.5 * uIntro;
+    gl_FragColor = vec4(col, 1.0);
+    ${tail}
+  }
+`;
