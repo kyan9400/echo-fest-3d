@@ -424,7 +424,7 @@ export default function Home() {
               <p>
                 Design &amp; code:{" "}
                 <a
-                  href="https://alhassan-portfolio-sigma.vercel.app"
+                  href={process.env.NEXT_PUBLIC_PORTFOLIO_URL ?? "https://alhassan-portfolio-sigma.vercel.app"}
                   className="link-under inline-flex min-h-11 items-center font-semibold text-ink"
                 >
                   Alhassan Alfarran

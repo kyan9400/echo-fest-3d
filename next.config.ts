@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   // lets client code build /public URLs that also work under the Pages base path
-  env: { NEXT_PUBLIC_BASE_PATH: pages ? base : "" },
+  env: { NEXT_PUBLIC_PORTFOLIO_URL: pages ? "https://kyan9400.github.io/alhassan_portfolio/" : "https://alhassan-portfolio-sigma.vercel.app", NEXT_PUBLIC_BASE_PATH: pages ? base : "" },
   ...(pages
     ? {
         output: "export",
